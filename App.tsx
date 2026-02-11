@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
-import { GALAXY_FOLDERS } from './constants';
+import { GALAXY_FOLDERS } from './data.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Globe, ChevronRight } from 'lucide-react';
 
