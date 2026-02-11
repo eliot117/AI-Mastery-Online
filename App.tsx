@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
-import { GALAXY_FOLDERS } from './data.js';
+import { GALAXY_FOLDERS } from './constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Globe, ChevronRight } from 'lucide-react';
 
@@ -41,14 +41,14 @@ const App: React.FC = () => {
           className="relative w-20 h-20 flex items-center justify-center pointer-events-auto"
         >
           {/* Subtle background glow preserved from original branding style */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#8b5cf6] to-[#3b82f6] rounded-2xl blur-[15px] opacity-40 animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#8b5cf6] to-[#3b82f6] rounded-2xl blur-[15px] opacity-25 animate-pulse" />
           
           {/* Main Logo Replacement: Deep Asset image_57b8a1.jpg */}
-          <div className="relative z-10 w-full h-full bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.3)]">
+          <div className="relative z-10 w-full h-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.2)]">
              <img 
-               src="/image_57b8a1.jpg"
+               src="image_57b8a1.jpg" 
                alt="AI Mastery Logo" 
-               className="w-full h-full object-cover"
+               className="w-full h-full object-cover brightness-110 contrast-110"
              />
           </div>
         </motion.div>
