@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
-import { GALAXY_FOLDERS } from './constants';
+import { GALAXY_FOLDERS } from './data';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Globe, ChevronRight } from 'lucide-react';
 
@@ -14,7 +14,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleResize = () => {
       const minDimension = Math.min(window.innerWidth, window.innerHeight);
-      // Increased multiplier to 0.52 to ensure the slightly larger 15% buttons have breathing room
+      // Multiplier ensures large orbital buttons don't collide
       setOrbitRadius(minDimension * 0.52);
     };
     handleResize();
@@ -26,27 +26,27 @@ const App: React.FC = () => {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
-      {/* CLEAN GALAXY THEME BACKGROUND */}
+      {/* COSMIC BACKGROUND SYSTEM */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <Starfield />
         <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-purple-600/5 blur-[200px] rounded-full" />
         <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-blue-600/5 blur-[200px] rounded-full" />
       </div>
 
-      {/* BRANDING: LOGO (TOP LEFT) & TITLE (TOP CENTER) */}
+      {/* BRANDING: TOP-LEFT LOGO ASSET */}
       <div className="fixed top-10 left-10 z-[60] pointer-events-none">
         <motion.div 
           initial={{ x: -30, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           className="relative w-20 h-20 flex items-center justify-center pointer-events-auto"
         >
-          {/* Subtle background glow preserved from original branding style */}
+          {/* Nebula halo effect for logo depth */}
           <div className="absolute inset-0 bg-gradient-to-tr from-[#8b5cf6] to-[#3b82f6] rounded-2xl blur-[15px] opacity-25 animate-pulse" />
           
-          {/* Main Logo Replacement: Deep Asset image_57b8a1.jpg */}
+          {/* Unified Branding Logo Container */}
           <div className="relative z-10 w-full h-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.2)]">
              <img 
-               src="image_57b8a1.jpg" 
+               src="/image_57b8a1.jpg" 
                alt="AI Mastery Logo" 
                className="w-full h-full object-cover brightness-110 contrast-110"
              />
@@ -54,6 +54,7 @@ const App: React.FC = () => {
         </motion.div>
       </div>
 
+      {/* CENTRAL COSMIC INTERFACE */}
       <div className="fixed top-12 left-0 right-0 z-[60] flex justify-center pointer-events-none">
         <motion.h1 
           initial={{ y: -20, opacity: 0 }}
@@ -64,7 +65,7 @@ const App: React.FC = () => {
         </motion.h1>
       </div>
 
-      {/* COMPACT CENTRAL FOCUS HUB (SEARCH & FOLDERS) */}
+      {/* SEARCH & FOLDER CONTROLS */}
       <div className="relative z-50 flex flex-col items-center w-full max-w-lg px-8">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
@@ -78,7 +79,7 @@ const App: React.FC = () => {
             <Search className="text-purple-400 opacity-60" size={18} strokeWidth={1.5} />
             <input 
               type="text" 
-              placeholder="Scan the galaxy for intelligence..." 
+              placeholder="Search cosmic intelligence..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-transparent border-none py-3 px-4 text-white focus:outline-none placeholder:text-gray-700 tracking-[0.05em] text-base font-light font-tech"
@@ -89,7 +90,6 @@ const App: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* FOLDER NAVIGATION - COMPACT */}
         <motion.nav 
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -113,7 +113,7 @@ const App: React.FC = () => {
         </motion.nav>
       </div>
 
-      {/* GALAXY ORBIT SYSTEM */}
+      {/* GALAXY ORBITAL RENDERING SYSTEM */}
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
         <motion.div
           key={activeFolder}
@@ -140,24 +140,6 @@ const App: React.FC = () => {
           </AnimatePresence>
         </motion.div>
       </div>
-
-      {/* FOOTER METRICS */}
-      <footer className="fixed bottom-10 left-12 right-12 flex justify-between items-end pointer-events-none opacity-40 z-[70]">
-        <div className="flex flex-col gap-3 text-[9px] font-mono tracking-[0.4em] text-gray-400">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e] animate-pulse" />
-            NODE_LINK: ENCRYPTED
-          </div>
-          <div className="font-tech text-[10px] text-purple-400/80">CLUSTER_LOAD: {currentApps.length} UNITS</div>
-        </div>
-        <div className="flex flex-col items-end gap-3 text-[9px] font-mono tracking-[0.4em] text-gray-400">
-          <div className="flex items-center gap-3">
-            <Globe size={12} className="text-blue-400/60" />
-            COORD: GALAXY_CORE_AXIS
-          </div>
-          <div className="font-tech text-[10px]">TIME_STAMP: 2025.03.R4</div>
-        </div>
-      </footer>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes gradient {
