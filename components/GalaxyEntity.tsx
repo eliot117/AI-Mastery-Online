@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useTransform, MotionValue } from 'framer-motion';
 import { AITool } from '../types';
 
 interface GalaxyEntityProps {
@@ -8,16 +9,28 @@ interface GalaxyEntityProps {
   total: number;
   radius: number;
   searchQuery: string;
+  globalRotation: MotionValue<number>;
 }
 
-export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, radius, searchQuery }) => {
-  const angle = (index / total) * Math.PI * 2;
-  const x = Math.cos(angle) * radius;
-  const y = Math.sin(angle) * radius;
+export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, radius, searchQuery, globalRotation }) => {
+  const baseAngle = (index / total) * Math.PI * 2;
+  
+  // HEIGHT INCREASED: Increased vertical multiplier to 0.6
+  const radiusY = radius * 0.6; 
+
+  // Dynamically calculate X and Y based on global rotation to follow the elliptical path
+  const x = useTransform(globalRotation, (rot) => {
+    const angle = baseAngle + (rot * Math.PI / 180);
+    return Math.cos(angle) * radius;
+  });
+
+  const y = useTransform(globalRotation, (rot) => {
+    const angle = baseAngle + (rot * Math.PI / 180);
+    return Math.sin(angle) * radiusY;
+  });
 
   // Domain extraction for high-res logo fetching
   const domain = new URL(tool.url).hostname;
-  // Deep Asset Replacement Logic: uses manual override or falls back to enhanced favicon
   const logoUrl = tool.logoUrl || `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
 
   const isMatch = !searchQuery || 
@@ -27,14 +40,13 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
   return (
     <motion.div
       className="absolute flex items-center justify-center"
-      initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+      style={{ x, y }}
+      initial={{ opacity: 0, scale: 0 }}
       animate={{ 
-        x, 
-        y, 
         opacity: isMatch ? 1 : 0.05, 
         scale: isMatch ? 1 : 0.7 
       }}
-      exit={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+      exit={{ opacity: 0, scale: 0 }}
       transition={{ 
         type: "spring", 
         stiffness: 60, 
@@ -42,17 +54,7 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
         delay: index * 0.03 
       }}
     >
-      <motion.div
-        animate={{
-          rotate: -360,
-        }}
-        transition={{
-          duration: 100,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-        className="flex items-center justify-center"
-      >
+      <div className="flex items-center justify-center">
         <motion.div
           animate={{
             y: [0, -12, 0],
@@ -81,7 +83,7 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
             <div className="absolute inset-0 bg-white/5 opacity-20 group-hover:opacity-40 transition-opacity rounded-[2.8rem]" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-blue-500/10 blur-3xl rounded-full" />
 
-            {/* Squircle Icon Container - Proportional scale increase with grey-glass focus */}
+            {/* Squircle Icon Container */}
             <div className={`relative z-10 w-18 h-18 md:w-20 md:h-20 mb-3 rounded-[1.8rem] overflow-hidden bg-white/5 p-2.5 flex items-center justify-center border border-white/10 shadow-inner`}>
               <img 
                 src={logoUrl} 
@@ -93,18 +95,16 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
               />
             </div>
             
-            {/* App Label - Uniform Typography Lock (Absolute Consistency) */}
+            {/* App Label */}
             <span className="relative z-10 text-[10px] md:text-[11px] font-tech font-bold text-white/95 tracking-[0.15em] uppercase text-center whitespace-nowrap overflow-visible leading-tight px-1 drop-shadow-sm">
               {tool.name}
             </span>
             
-            {/* Inner Glowing Edge for Smoked Glass depth */}
             <div className="absolute inset-[1px] rounded-[2.8rem] border border-white/10 pointer-events-none" />
-            
             <div className="absolute inset-0 rounded-[2.8rem] bg-gradient-to-tr from-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           </motion.a>
         </motion.div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };

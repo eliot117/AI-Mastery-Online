@@ -1,16 +1,30 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
 import { GALAXY_FOLDERS } from './data';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { Search, ChevronRight } from 'lucide-react';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFolder, setActiveFolder] = useState<string>("Agents");
   const [orbitRadius, setOrbitRadius] = useState(400);
+  
+  // Driving the rotation via a MotionValue allows for high-performance elliptical math in children
+  const globalRotation = useMotionValue(0);
 
-  // Responsive Orbit Radius calculation with collision prevention
+  useEffect(() => {
+    // Maintain the exact same orbital speed (100s per rotation)
+    const controls = animate(globalRotation, 360, {
+      duration: 100,
+      repeat: Infinity,
+      ease: "linear"
+    });
+    return () => controls.stop();
+  }, [globalRotation]);
+
+  // Responsive Orbit Radius calculation
   useEffect(() => {
     const handleResize = () => {
       const minDimension = Math.min(window.innerWidth, window.innerHeight);
@@ -29,7 +43,6 @@ const App: React.FC = () => {
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <Starfield />
         
-        {/* Dynamic deep space atmospheric layers */}
         <motion.div 
           animate={{ opacity: [0.03, 0.08, 0.03] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -44,17 +57,14 @@ const App: React.FC = () => {
 
       {/* SEARCH & FOLDER CONTROLS CONTAINER */}
       <div className="relative z-50 flex flex-col items-center w-full max-w-lg px-8">
-        {/* BRANDING LOCK - REFINED PROPORTIONAL STACK */}
         <motion.h1 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="flex flex-col items-center mb-10 text-center pointer-events-none"
         >
-          {/* AI - TOP LINE, LARGE HERO TEXT */}
           <span className="text-7xl md:text-8xl font-tech font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow leading-[0.85]">
             AI
           </span>
-          {/* MASTERY - BOTTOM LINE, INCREASED SIZE FOR STRONG PRESENCE */}
           <span className="text-3xl md:text-4xl font-tech font-bold tracking-[0.4em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow opacity-90 mt-2 mr-[-0.4em]">
             MASTERY
           </span>
@@ -108,14 +118,26 @@ const App: React.FC = () => {
 
       {/* GALAXY ORBITAL RENDERING SYSTEM */}
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
+        {/* Visual Orbital Path - Height updated to multiplier 0.6 */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-10">
+          <ellipse 
+            cx="50%" cy="50%" 
+            rx={orbitRadius} 
+            ry={orbitRadius * 0.6} 
+            fill="none" 
+            stroke="white" 
+            strokeWidth="1" 
+            strokeDasharray="4 8"
+          />
+        </svg>
+
         <motion.div
           key={activeFolder}
           initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1, rotate: 360 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{
             opacity: { duration: 0.8 },
-            scale: { duration: 0.8, type: "spring" },
-            rotate: { duration: 100, repeat: Infinity, ease: "linear" }
+            scale: { duration: 0.8, type: "spring" }
           }}
           className="relative w-1 h-1 flex items-center justify-center"
         >
@@ -128,6 +150,7 @@ const App: React.FC = () => {
                 total={currentApps.length} 
                 radius={orbitRadius}
                 searchQuery={searchQuery}
+                globalRotation={globalRotation}
               />
             ))}
           </AnimatePresence>
