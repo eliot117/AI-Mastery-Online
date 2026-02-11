@@ -3,7 +3,7 @@ import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
 import { GALAXY_FOLDERS } from './data';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Globe, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight } from 'lucide-react';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +14,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleResize = () => {
       const minDimension = Math.min(window.innerWidth, window.innerHeight);
-      // Multiplier ensures large orbital buttons don't collide
       setOrbitRadius(minDimension * 0.52);
     };
     handleResize();
@@ -29,44 +28,31 @@ const App: React.FC = () => {
       {/* COSMIC BACKGROUND SYSTEM */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <Starfield />
-        <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-purple-600/5 blur-[200px] rounded-full" />
-        <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-blue-600/5 blur-[200px] rounded-full" />
-      </div>
-
-      {/* BRANDING: TOP-LEFT LOGO ASSET */}
-      <div className="fixed top-10 left-10 z-[60] pointer-events-none">
+        
+        {/* Dynamic deep space atmospheric layers */}
         <motion.div 
-          initial={{ x: -30, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="relative w-20 h-20 flex items-center justify-center pointer-events-auto"
-        >
-          {/* Nebula halo effect for logo depth */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#8b5cf6] to-[#3b82f6] rounded-2xl blur-[15px] opacity-25 animate-pulse" />
-          
-          {/* Unified Branding Logo Container */}
-          <div className="relative z-10 w-full h-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.2)]">
-             <img 
-               src="/image_57b8a1.jpg" 
-               alt="AI Mastery Logo" 
-               className="w-full h-full object-cover brightness-110 contrast-110"
-             />
-          </div>
-        </motion.div>
+          animate={{ opacity: [0.03, 0.08, 0.03] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 -left-1/4 w-3/4 h-3/4 bg-purple-600/10 blur-[240px] rounded-full" 
+        />
+        <motion.div 
+          animate={{ opacity: [0.03, 0.08, 0.03] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-1/4 -right-1/4 w-3/4 h-3/4 bg-blue-600/10 blur-[240px] rounded-full" 
+        />
       </div>
 
-      {/* CENTRAL COSMIC INTERFACE */}
-      <div className="fixed top-12 left-0 right-0 z-[60] flex justify-center pointer-events-none">
+      {/* SEARCH & FOLDER CONTROLS CONTAINER */}
+      <div className="relative z-50 flex flex-col items-center w-full max-w-lg px-8">
+        {/* BRANDING LOCK - NOW STACKED DIRECTLY ABOVE SEARCH */}
         <motion.h1 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-2xl md:text-3xl font-tech font-black tracking-[0.8em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow"
+          className="text-2xl md:text-3xl font-tech font-black tracking-[0.8em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow mb-8 text-center"
         >
           AI MASTERY
         </motion.h1>
-      </div>
 
-      {/* SEARCH & FOLDER CONTROLS */}
-      <div className="relative z-50 flex flex-col items-center w-full max-w-lg px-8">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
