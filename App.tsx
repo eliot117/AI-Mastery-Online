@@ -44,13 +44,20 @@ const App: React.FC = () => {
 
       {/* SEARCH & FOLDER CONTROLS CONTAINER */}
       <div className="relative z-50 flex flex-col items-center w-full max-w-lg px-8">
-        {/* BRANDING LOCK - NOW STACKED DIRECTLY ABOVE SEARCH */}
+        {/* BRANDING LOCK - REFINED PROPORTIONAL STACK */}
         <motion.h1 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-2xl md:text-3xl font-tech font-black tracking-[0.8em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow mb-8 text-center"
+          className="flex flex-col items-center mb-10 text-center pointer-events-none"
         >
-          AI MASTERY
+          {/* AI - TOP LINE, LARGE HERO TEXT */}
+          <span className="text-7xl md:text-8xl font-tech font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow leading-[0.85]">
+            AI
+          </span>
+          {/* MASTERY - BOTTOM LINE, INCREASED SIZE FOR STRONG PRESENCE */}
+          <span className="text-3xl md:text-4xl font-tech font-bold tracking-[0.4em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow opacity-90 mt-2 mr-[-0.4em]">
+            MASTERY
+          </span>
         </motion.h1>
 
         <motion.div 

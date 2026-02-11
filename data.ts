@@ -2,7 +2,7 @@ import { AITool } from './types';
 
 export const GALAXY_FOLDERS: Record<string, AITool[]> = {
   "Agents": [
-    { id: 'm1', name: "Claude Master", url: "https://claude.ai/chat/9fcc0bb7-a387-47e1-821a-ed788b2bd10a", description: "Prompt Master 2.0", category: "Main", icon: "🎭" },
+    { id: 'm1', name: "Prompt Master", url: "https://claude.ai/chat/9fcc0bb7-a387-47e1-821a-ed788b2bd10a", description: "Prompt Master", category: "Main", icon: "🎭" },
     { id: 'm2', name: "Manus", url: "https://manus.im/app", description: "Universal Agent", category: "Main", icon: "🧠" },
     { id: 'm3', name: "Genspark", url: "https://www.genspark.ai/", description: "All-in-One Workspace", category: "Main", icon: "💫" },
     { id: 'm4', name: "Runable", url: "https://runable.com/", description: "AI Execution", category: "Main", icon: "🏃" },
