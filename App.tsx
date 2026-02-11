@@ -46,7 +46,7 @@ const App: React.FC = () => {
           {/* Main Logo Replacement: Deep Asset image_57b8a1.jpg */}
           <div className="relative z-10 w-full h-full bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.3)]">
              <img 
-               src="image_57b8a1.jpg" 
+               src="/image_57b8a1.jpg"
                alt="AI Mastery Logo" 
                className="w-full h-full object-cover"
              />
