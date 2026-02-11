@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
@@ -118,12 +117,12 @@ const App: React.FC = () => {
 
       {/* GALAXY ORBITAL RENDERING SYSTEM */}
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
-        {/* Visual Orbital Path - Height updated to multiplier 0.6 */}
+        {/* Visual Orbital Path - Height updated to multiplier 0.75 for vertical stretch */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-10">
           <ellipse 
             cx="50%" cy="50%" 
             rx={orbitRadius} 
-            ry={orbitRadius * 0.6} 
+            ry={orbitRadius * 0.75} 
             fill="none" 
             stroke="white" 
             strokeWidth="1" 

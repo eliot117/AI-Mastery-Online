@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, useTransform, MotionValue } from 'framer-motion';
 import { AITool } from '../types';
@@ -15,8 +14,8 @@ interface GalaxyEntityProps {
 export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, radius, searchQuery, globalRotation }) => {
   const baseAngle = (index / total) * Math.PI * 2;
   
-  // HEIGHT INCREASED: Increased vertical multiplier to 0.6
-  const radiusY = radius * 0.6; 
+  // HEIGHT STRETCHED: Increased vertical multiplier to 0.75 for vertical stretch
+  const radiusY = radius * 0.75; 
 
   // Dynamically calculate X and Y based on global rotation to follow the elliptical path
   const x = useTransform(globalRotation, (rot) => {
