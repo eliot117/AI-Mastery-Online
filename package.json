@@ -13,8 +13,8 @@
     "react": "^19.2.4",
     "framer-motion": "^12.31.0",
     "lucide-react": "^0.563.0",
-    "@vitejs/plugin-react": "^5.1.4",
     "vite": "^7.3.1",
+    "@vitejs/plugin-react": "^5.1.4",
     "path": "^0.12.7",
     "url": "^0.11.4"
   },
