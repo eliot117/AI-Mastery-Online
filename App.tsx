@@ -34,7 +34,20 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const currentApps = useMemo(() => GALAXY_FOLDERS[activeFolder] || [], [activeFolder]);
+  // Global search logic: query all individual apps across entire database if searching
+  const currentApps = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      return GALAXY_FOLDERS[activeFolder] || [];
+    }
+
+    // Flatten all categories to search globally
+    const allTools = Object.values(GALAXY_FOLDERS).flat();
+    return allTools.filter(tool => 
+      tool.name.toLowerCase().includes(query) || 
+      tool.description.toLowerCase().includes(query)
+    );
+  }, [activeFolder, searchQuery]);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
@@ -101,10 +114,13 @@ const App: React.FC = () => {
           {Object.keys(GALAXY_FOLDERS).map((folderName) => (
             <button
               key={folderName}
-              onClick={() => setActiveFolder(folderName)}
+              onClick={() => {
+                setActiveFolder(folderName);
+                setSearchQuery(''); // Clear search when switching folders to reset view
+              }}
               className={`
                 px-4 py-1.5 rounded-full text-[9px] font-tech font-bold uppercase tracking-[0.3em] transition-all border backdrop-blur-md
-                ${activeFolder === folderName 
+                ${activeFolder === folderName && !searchQuery
                   ? 'bg-white/10 border-purple-500/60 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]' 
                   : 'bg-white/5 border-white/5 text-gray-500 hover:text-white hover:border-white/20'}
               `}
@@ -131,7 +147,7 @@ const App: React.FC = () => {
         </svg>
 
         <motion.div
-          key={activeFolder}
+          key={activeFolder + (searchQuery ? '_search' : '_browse')}
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
@@ -140,7 +156,7 @@ const App: React.FC = () => {
           }}
           className="relative w-1 h-1 flex items-center justify-center"
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout">
             {currentApps.map((tool, idx) => (
               <GalaxyEntity 
                 key={tool.id} 

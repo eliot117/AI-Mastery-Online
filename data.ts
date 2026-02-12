@@ -1,5 +1,9 @@
 import { AITool } from './types';
 
+// SVGs recreated as base64 data URIs for clean, professional rendering on the orbital buttons
+const TWAIN_GPT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgNjAiPjx0ZXh0IHg9IjEwIiB5PSI0MiIgZm9udC1mYW1pbHk9Ik91dGZpdCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjYwMCIgZm9udC1zaXplPSIzNCIgZmlsbD0id2hpdGUiPnR3YWluPC90ZXh0PjxyZWN0IHg9IjEwNSIgeT0iMTQiIHdpZHRoPSI1NCIgaGVpZ2h0PSIzOCIgcng9IjgiIGZpbGw9IiMyNTYzZWIiLz48dGV4dCB4PSIxMzIiIHk9IjQwIiBmb250LWZhbWlseT0iT3V0Zml0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjIyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R1BUPC90ZXh0Pjwvc3ZnPg==";
+const OPAL_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgNjAiPjx0ZXh0IHg9IjYwIiB5PSI0MiIgZm9udC1mYW1pbHk9Ik91dGZpdCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1zaXplPSIzOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wYWw8L3RleHQ+PC9zdmc+";
+
 export const GALAXY_FOLDERS: Record<string, AITool[]> = {
   "Agents": [
     { id: 'm1', name: "Prompt Master", url: "https://claude.ai/chat/9fcc0bb7-a387-47e1-821a-ed788b2bd10a", description: "Prompt Master", category: "Main", icon: "🎭" },
@@ -20,12 +24,12 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 't2', name: "Visme", url: "https://www.visme.co/", description: "Presentation Maker", category: "Tasks", icon: "📽️" },
     { id: 't3', name: "Gemini Code", url: "https://codeassist.google/", description: "Code Assist", category: "Tasks", icon: "💻" },
     { id: 't4', name: "Wispr Flow", url: "https://wisprflow.ai/", description: "Voice Dictation", category: "Tasks", icon: "🎙️" },
-    { id: 't5', name: "Opal", url: "https://opal.google/", description: "Google Experiment", category: "Tasks", icon: "🔮" },
+    { id: 't5', name: "Opal", url: "https://opal.google/", description: "Google Experiment", category: "Tasks", icon: "🔮", logoUrl: OPAL_LOGO },
     { id: 't6', name: "MGX", url: "https://mgx.dev/", description: "MetaGPT X Dev Team", category: "Tasks", icon: "🏗️" },
     { id: 't7', name: "Excel AI", url: "https://app.formulabot.com/excel-ai", description: "Formulas & Analysis", category: "Tasks", icon: "📈" },
     { id: 't8', name: "Eraser", url: "https://www.eraser.io/", description: "Technical Design", category: "Tasks", icon: "📐" },
     { id: 't9', name: "DeepL", url: "https://www.deepl.com/en/translator", description: "AI Translation", category: "Tasks", icon: "🌍" },
-    { id: 't10', name: "TwainGPT", url: "https://app.twaingpt.com/humanizer", description: "AI Humanizer", category: "Tasks", icon: "✍️" },
+    { id: 't10', name: "TwainGPT", url: "https://app.twaingpt.com/humanizer", description: "AI Humanizer", category: "Tasks", icon: "✍️", logoUrl: TWAIN_GPT_LOGO },
     { id: 't11', name: "ZeroGPT", url: "https://www.zerogpt.com/", description: "AI Detector", category: "Tasks", icon: "🛡️" }
   ],
   "Business": [
