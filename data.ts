@@ -1,10 +1,22 @@
 import { AITool } from './types';
 
-// High-quality brand assets recreated as base64 data URIs for the 'Clean Logo' aesthetic.
-// Recreated with specific brand styling: 'twain' text + blue 'GPT' rounded box.
+/**
+ * HIGH-TECH MINIMALIST LOGO PROTOCOLS:
+ * - Direct-on-surface: No gray boxes, borders, or nested backgrounds.
+ * - Optimized SVGs: Recreated for maximum sharpness and branding accuracy.
+ */
+
 const TWAIN_GPT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgNjAiPjx0ZXh0IHg9IjEwIiB5PSI0MiIgZm9udC1mYW1pbHk9Ik91dGZpdCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjYwMCIgZm9udC1zaXplPSIzNCIgZmlsbD0id2hpdGUiPnR3YWluPC90ZXh0PjxyZWN0IHg9IjEwNSIgeT0iMTQiIHdpZHRoPSI1NCIgaGVpZ2h0PSIzOCIgcng9IjgiIGZpbGw9IiMyNTYzZWIiLz48dGV4dCB4PSIxMzIiIHk9IjQwIiBmb250LWZhbWlseT0iT3V0Zml0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjIyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R1BUPC90ZXh0Pjwvc3ZnPg==";
-// Recreated as a bold, clean wordmark matching reference.
+
 const OPAL_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgNjAiPjx0ZXh0IHg9IjYwIiB5PSI0MiIgZm9udC1mYW1pbHk9Ik91dGZpdCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1zaXplPSIzOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wYWw8L3RleHQ+PC9zdmc+";
+
+const PHYGITAL_PLUS_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDMwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlYzQ4OTkiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48dGV4dCB4PSI1MCUiIHk9IjcwJSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ik91dGZpdCwgSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNjQiIGZpbGw9InVybCgjZzEpIj5QaHlnaXRhbCs8L3RleHQ+PC9zdmc+";
+
+// Kimi AI Recreated: Extra Heavy-weight white K with scaled signature blue dot on black squircle
+const KIMI_AI_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxNDAiIGZpbGw9ImJsYWNrIi8+PHBhdGggZD0iTTE2NSAxMTBWNDAyTTE2NSAyNTZMMzA1IDExME0xNjUgMjU2TDMwNSA0MDIiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMTE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSIzOTUiIGN5PSIxMjUiIHI9Ijc1IiBmaWxsPSIjM2I4MmY2Ii8+PC9zdmc+";
+
+// Forward Future Recreated: Minimalist cute white astronaut (no glow, transparent bg, centered, 50% scale)
+const FORWARD_FUTURE_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTQzIDc4IFE1MCA3MSA1NyA3OEw1NyA4NEw0MyA4NFoiIGZpbGw9IndoaXRlIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMTgiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iMzgiIHk9IjQ0IiB3aWR0aD0iMjQiIGhlaWdodD0iMTIiIHJ4PSI2IiBmaWxsPSJibGFjayIvPjxjaXJjbGUgY3g9IjU2IiBjeT0iNDgiIHI9IjEuMiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOCIvPjwvc3ZnPg==";
 
 export const GALAXY_FOLDERS: Record<string, AITool[]> = {
   "Agents": [
@@ -19,7 +31,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'a9', name: "ChatGPT", url: "https://chatgpt.com/", description: "OpenAI ChatGPT", category: "Agents", icon: "💬" },
     { id: 'a10', name: "Grok", url: "https://grok.com/", description: "xAI Grok", category: "Agents", icon: "🐦" },
     { id: 'a11', name: "DeepSeek", url: "https://chat.deepseek.com/", description: "Reasoning AI", category: "Agents", icon: "🌊" },
-    { id: 'a12', name: "Kimi AI", url: "https://www.kimi.com/", description: "Long-context AI", category: "Agents", icon: "🐉" },
+    { id: 'a12', name: "Kimi AI", url: "https://www.kimi.com/", description: "Long-context AI", category: "Agents", icon: "🐉", logoUrl: KIMI_AI_LOGO },
     { id: 'a13', name: "Poe", url: "https://poe.com/", description: "AI Bot Hub", category: "Agents", icon: "📜" },
     { id: 'a14', name: "Prompt Master", url: "https://claude.ai/chat/9fcc0bb7-a387-47e1-821a-ed788b2bd10a", description: "Expert Prompt Assistant", category: "Agents", icon: "🎭" },
     { id: 'a15', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "📐" }
@@ -111,12 +123,10 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'l5', name: "AiTools", url: "https://aitools.sh/", description: "Free AI Library", category: "Libraries", icon: "🛠️" },
     { id: 'l6', name: "Snack Prompt", url: "https://snackprompt.com/", description: "Prompt Community", category: "Libraries", icon: "🍿" },
     { id: 'l7', name: "Prompt Packs", url: "https://academy.openai.com/public/tags/prompt-packs", description: "OpenAI Academy", category: "Libraries", icon: "📦" },
-    { id: 'l8', name: "Chat Prompts", url: "https://prompts.forwardfuture.ai/chat-prompts", description: "Forward Future", category: "Libraries", icon: "🗣️" },
-    { id: 'l9', name: "AI Toolkit", url: "https://tidal-celery-e12.notion.site/129db48aa22b801790adf1a87", description: "700+ Tools", category: "Libraries", icon: "🗂️" },
+    { id: 'l8', name: "Forward Future", url: "https://prompts.forwardfuture.ai/chat-prompts", description: "Future Intelligence Hub", category: "Libraries", icon: "👨‍🚀", logoUrl: FORWARD_FUTURE_LOGO },
     { id: 'l10', name: "TinyWow", url: "https://tinywow.com/", description: "PDF & Image Tools", category: "Libraries", icon: "📦" },
     { id: 'l11', name: "Latent Box", url: "https://latentbox.com/en", description: "AI Tools Hub", category: "Libraries", icon: "🗃️" },
-    { id: 'l12', name: "Coding Rundown", url: "https://www.google.com/search?q=https%3A%2F%2Frundown.ai", description: "Search Rundown Coding", category: "Libraries", icon: "🔍" },
-    { id: 'l13', name: "Phygital Plus", url: "https://www.google.com/search?q=https%3A%2F%2Flibrary.phygital.plus", description: "Search Phygital Plus", category: "Libraries", icon: "🎨" },
+    { id: 'l13', name: "Phygital+", url: "https://www.google.com/search?q=https%3A%2F%2Flibrary.phygital.plus", description: "Digital Design Library", category: "Libraries", icon: "🎨", logoUrl: PHYGITAL_PLUS_LOGO },
     { id: 'l14', name: "Business AI", url: "https://www.hypotenuse.ai/blog/best-ai-tools-for-small-business", description: "Small Biz Tools", category: "Libraries", icon: "💼" }
   ]
 };

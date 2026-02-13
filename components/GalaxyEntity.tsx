@@ -88,7 +88,7 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
             <div className="absolute inset-0 bg-white/5 opacity-20 group-hover:opacity-40 transition-opacity rounded-3xl" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-blue-500/10 blur-3xl rounded-full" />
 
-            {/* Squircle Icon Container - Removed background, border, and shadow for Manus-style floating look */}
+            {/* Squircle Icon Container */}
             <div className={`relative z-10 w-18 h-18 md:w-20 md:h-20 mb-3 flex items-center justify-center overflow-hidden rounded-xl`}>
               <img 
                 src={logoUrl} 
@@ -100,10 +100,12 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
               />
             </div>
             
-            {/* App Label */}
-            <span className="relative z-10 text-[10px] md:text-[11px] font-tech font-bold text-white/95 tracking-[0.15em] uppercase text-center whitespace-nowrap overflow-visible leading-tight px-1 drop-shadow-sm">
-              {tool.name}
-            </span>
+            {/* App Label - STRICT ISOLATION: 10px, max 2 lines, keep-all word integrity, vertically centered block */}
+            <div className="relative z-10 w-full flex items-center justify-center min-h-[2.4em]">
+              <span className="px-2 text-[10px] font-tech font-bold text-white/95 tracking-[0.1em] uppercase text-center whitespace-normal [word-break:keep-all] line-clamp-2 leading-tight drop-shadow-sm">
+                {tool.name}
+              </span>
+            </div>
             
             <div className="absolute inset-[1px] rounded-3xl border border-white/10 pointer-events-none" />
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />

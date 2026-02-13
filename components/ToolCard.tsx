@@ -65,9 +65,13 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, isHero = false, search
           >
             {tool.icon}
           </motion.span>
-          <h3 className={`font-display font-medium text-white truncate w-full ${isHero ? 'text-lg' : 'text-sm'}`}>
-            {tool.name}
-          </h3>
+          
+          <div className="w-full flex items-center justify-center min-h-[2.4em]">
+            <h3 className="font-tech font-bold text-white/95 text-[10px] uppercase tracking-[0.1em] text-center whitespace-normal [word-break:keep-all] line-clamp-2 leading-tight drop-shadow-sm">
+              {tool.name}
+            </h3>
+          </div>
+
           {isHero && (
             <p className="text-[10px] text-gray-400 mt-1 line-clamp-2 leading-tight px-2">
               {tool.description}
