@@ -4,11 +4,13 @@ import { GalaxyEntity } from './components/GalaxyEntity';
 import { GALAXY_FOLDERS } from './data';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { Search, ChevronRight } from 'lucide-react';
+import { AITool } from './types';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFolder, setActiveFolder] = useState<string>("Agents");
   const [orbitRadius, setOrbitRadius] = useState(400);
+  const [navigatingTo, setNavigatingTo] = useState<AITool | null>(null);
   
   // Driving the rotation via a MotionValue allows for high-performance elliptical math in children
   const globalRotation = useMotionValue(0);
@@ -48,6 +50,14 @@ const App: React.FC = () => {
       tool.description.toLowerCase().includes(query)
     );
   }, [activeFolder, searchQuery]);
+
+  const handleLaunch = (tool: AITool) => {
+    setNavigatingTo(tool);
+    // Timed redirect to peak of animation
+    setTimeout(() => {
+      window.location.href = tool.url;
+    }, 700);
+  };
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
@@ -166,11 +176,46 @@ const App: React.FC = () => {
                 radius={orbitRadius}
                 searchQuery={searchQuery}
                 globalRotation={globalRotation}
+                onLaunch={handleLaunch}
               />
             ))}
           </AnimatePresence>
         </motion.div>
       </div>
+
+      {/* EXPLOSION & EXPAND TRANSITION OVERLAY */}
+      <AnimatePresence>
+        {navigatingTo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center pointer-events-none"
+          >
+            <motion.div
+              initial={{ scale: 0.1, opacity: 1, filter: 'brightness(1) blur(0px)' }}
+              animate={{ 
+                scale: 15, 
+                opacity: [1, 1, 0],
+                filter: ['brightness(1) blur(0px)', 'brightness(3) blur(10px)', 'brightness(10) blur(40px)'] 
+              }}
+              transition={{ duration: 0.8, ease: "easeIn" }}
+              className="relative w-40 h-40 flex items-center justify-center"
+            >
+              <img 
+                src={navigatingTo.logoUrl || `https://www.google.com/s2/favicons?sz=128&domain=${new URL(navigatingTo.url).hostname}`}
+                alt=""
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              {/* Fallback glow if logo fails or for extra explosion effect */}
+              <div className="absolute inset-0 bg-white rounded-full blur-2xl opacity-50 mix-blend-screen" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes gradient {

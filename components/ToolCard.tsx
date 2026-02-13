@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AITool } from '../types';
@@ -26,7 +25,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, isHero = false, search
     e.preventDefault();
     setIsExpanding(true);
     setTimeout(() => {
-      window.open(tool.url, '_blank', 'noopener,noreferrer');
+      window.open(tool.url, '_self');
       setIsExpanding(false);
     }, 800);
   };

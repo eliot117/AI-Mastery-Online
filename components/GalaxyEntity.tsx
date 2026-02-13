@@ -9,9 +9,10 @@ interface GalaxyEntityProps {
   radius: number;
   searchQuery: string;
   globalRotation: MotionValue<number>;
+  onLaunch: (tool: AITool) => void;
 }
 
-export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, radius, searchQuery, globalRotation }) => {
+export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, radius, searchQuery, globalRotation, onLaunch }) => {
   const baseAngle = (index / total) * Math.PI * 2;
   
   // HEIGHT STRETCHED: Vertical multiplier 0.75 for vertical stretch
@@ -35,6 +36,11 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
   const isMatch = !searchQuery || 
     tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tool.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onLaunch(tool);
+  };
 
   return (
     <motion.div
@@ -68,14 +74,14 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
         >
           <motion.a
             href={tool.url}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={handleClick}
             whileHover={{ scale: 1.12, rotate: 2 }}
             whileTap={{ scale: 0.95 }}
             className={`
               w-36 h-36 md:w-40 md:h-40 rounded-3xl flex flex-col items-center justify-center p-3
               bg-[#1c1c1c]/80 backdrop-blur-3xl border border-white/10 shadow-[0_0_30px_rgba(139,92,246,0.15)]
               hover:shadow-[0_0_50px_rgba(139,92,246,0.4)] hover:border-purple-500/50 transition-all overflow-visible
+              cursor-pointer
             `}
           >
             {/* Smoked glass atmospheric depth */}
@@ -89,7 +95,7 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
                 alt={tool.name} 
                 className="w-full h-full object-contain filter drop-shadow-2xl bg-transparent"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%%22 y=%2250%%22 dy=%22.35em%22 text-anchor=%22middle%22 font-size=%2260%22>${tool.icon}</text></svg>`;
+                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%%22 y=%2250%%22 dy=%22.35em%22 text-anchor=%22middle%22 font-size=%2260%22 fill=%22white%22>${tool.icon}</text></svg>`;
                 }}
               />
             </div>
