@@ -13,7 +13,7 @@ const OPAL_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
 const PHYGITAL_PLUS_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDMwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlYzQ4OTkiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48dGV4dCB4PSI1MCUiIHk9IjcwJSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ik91dGZpdCwgSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNjQiIGZpbGw9InVybCgjZzEpIj5QaHlnaXRhbCs8L3RleHQ+PC9zdmc+";
 
 // Kimi AI Recreated: Extra Heavy-weight white K with scaled signature blue dot on black squircle
-const KIMI_AI_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxNDAiIGZpbGw9ImJsYWNrIi8+PHBhdGggZD0iTTE2NSAxMTBWNDAyTTE2NSAyNTZMMzA1IDExME0xNjUgMjU2TDMwNSA0MDIiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMTE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSIzOTUiIGN5PSIxMjUiIHI9Ijc1IiBmaWxsPSIjM2I4MmY2Ii8+PC9zdmc+";
+const KIMI_AI_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxNDAiIGZpbGw9ImJsYWNrIi8+PHBhdGggZD0iTTE2NSAxMTBWNDAyTTE2NSAyNTZMMzA1IDExME0xNjUgMjU2TDMzA1IDQwMiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMTE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSIzOTUiIGN5PSIxMjUiIHI9Ijc1IiBmaWxsPSIjM2I4MmY2Ii8+PC9zdmc+";
 
 // Forward Future Recreated: Minimalist cute white astronaut (no glow, transparent bg, centered, 50% scale)
 const FORWARD_FUTURE_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTQzIDc4IFE1MCA3MSA1NyA3OEw1NyA4NEw0MyA4NFoiIGZpbGw9IndoaXRlIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMTgiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iMzgiIHk9IjQ0IiB3aWR0aD0iMjQiIGhlaWdodD0iMTIiIHJ4PSI2IiBmaWxsPSJibGFjayIvPjxjaXJjbGUgY3g9IjU2IiBjeT0iNDgiIHI9IjEuMiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOCIvPjwvc3ZnPg==";
@@ -33,7 +33,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'a11', name: "DeepSeek", url: "https://chat.deepseek.com/", description: "Reasoning AI", category: "Agents", icon: "🌊" },
     { id: 'a12', name: "Kimi AI", url: "https://www.kimi.com/", description: "Long-context AI", category: "Agents", icon: "🐉", logoUrl: KIMI_AI_LOGO },
     { id: 'a13', name: "Poe", url: "https://poe.com/", description: "AI Bot Hub", category: "Agents", icon: "📜" },
-    { id: 'a14', name: "Prompt Master", url: "https://claude.ai/chat/9fcc0bb7-a387-47e1-821a-ed788b2bd10a", description: "Expert Prompt Assistant", category: "Agents", icon: "🎭" },
+    { id: 'a14', name: "Prompt Master", url: "https://claude.ai/chat/9acc1b35-32b2-4af4-96a3-9cde168251f5", description: "Expert Prompt Assistant", category: "Agents", icon: "🎭" },
     { id: 'a15', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "📐" }
   ],
   "Tasks": [
