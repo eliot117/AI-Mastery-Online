@@ -71,7 +71,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
   ],
   "Build": [
     { id: 'bd19', name: "Spline", url: "https://app.spline.design/home", description: "Collaborative 3D Design", category: "Build", icon: "🧊", logoUrl: SPLINE_LOGO },
-    { id: 'bd20', name: "21st.dev", url: "https://21st.dev/community/components", description: "React Components Library", category: "Build", icon: "⚛️", logoUrl: TWENTY_FIRST_DEV_LOGO }
+    { id: 'bd20', name: "21st.dev", url: "https://21st.dev/community/components", description: "React Components Library", category: "Build", icon: "⚛️", logoUrl: TWENTY_FIRST_DEV_LOGO },
     { id: 'bd1', name: "Panda", url: "https://app.usepanda.com/", description: "Discovery & Feed", category: "Build", icon: "🐼" },
     { id: 'bd2', name: "Vibecode", url: "https://www.vibecodeapp.com/workspace", description: "Vibecode Workspace", category: "Build", icon: "💻" },
     { id: 'bd3', name: "Mocha", url: "https://getmocha.com/", description: "No-Code App Builder", category: "Build", icon: "☕" },
@@ -88,7 +88,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'bd15', name: "Orchids", url: "https://www.orchids.app/", description: "AI Fullstack Engineer", category: "Build", icon: "🌸" },
     { id: 'bd16', name: "Base44", url: "https://app.base44.com/", description: "Web Builder", category: "Build", icon: "📦" },
     { id: 'bd17', name: "Rork", url: "https://rork.com/", description: "Mobile Vibe Coding", category: "Build", icon: "📱" },
-    { id: 'bd18', name: "AI Studio Build", url: "https://aistudio.google.com/apps", description: "App Creator", category: "Build", icon: "🛠️" },
+    { id: 'bd18', name: "AI Studio Build", url: "https://aistudio.google.com/apps", description: "App Creator", category: "Build", icon: "🛠️" }
   ],
   "Inspirations": [
     { id: 'i1', name: "Mobbin Apps", url: "https://mobbin.com/discover/apps/ios/latest", description: "App Design Library", category: "Inspirations", icon: "📱" },
