@@ -1,22 +1,35 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
-import { GALAXY_FOLDERS } from './data';
+import { GALAXY_FOLDERS as INITIAL_DATA } from './data';
+import { ManageOverlay } from './components/ManageOverlay';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, Settings } from 'lucide-react';
 import { AITool } from './types';
+
+const STORAGE_KEY = 'ai_mastery_data_v1';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFolder, setActiveFolder] = useState<string>("Agents");
+  const [folders, setFolders] = useState<Record<string, AITool[]>>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : INITIAL_DATA;
+  });
+  
+  const folderNames = useMemo(() => Object.keys(folders), [folders]);
+  const [activeFolder, setActiveFolder] = useState<string>(folderNames[0] || "Agents");
   const [orbitRadius, setOrbitRadius] = useState(400);
   const [navigatingTo, setNavigatingTo] = useState<AITool | null>(null);
+  const [isManageOpen, setIsManageOpen] = useState(false);
   
-  // Driving the rotation via a MotionValue allows for high-performance elliptical math in children
   const globalRotation = useMotionValue(0);
 
   useEffect(() => {
-    // Maintain the exact same orbital speed (100s per rotation)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(folders));
+  }, [folders]);
+
+  useEffect(() => {
     const controls = animate(globalRotation, 360, {
       duration: 100,
       repeat: Infinity,
@@ -25,7 +38,6 @@ const App: React.FC = () => {
     return () => controls.stop();
   }, [globalRotation]);
 
-  // Responsive Orbit Radius calculation
   useEffect(() => {
     const handleResize = () => {
       const minDimension = Math.min(window.innerWidth, window.innerHeight);
@@ -36,35 +48,51 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Global search logic: query all individual apps across entire database if searching
   const currentApps = useMemo(() => {
+    let tools: AITool[] = [];
     const query = searchQuery.trim().toLowerCase();
+
     if (!query) {
-      return GALAXY_FOLDERS[activeFolder] || [];
+      tools = [...(folders[activeFolder] || [])];
+    } else {
+      tools = (Object.values(folders).flat() as AITool[]).filter(tool => 
+        tool.name.toLowerCase().includes(query) || 
+        tool.description.toLowerCase().includes(query)
+      );
     }
 
-    // Flatten all categories to search globally
-    const allTools = Object.values(GALAXY_FOLDERS).flat();
-    return allTools.filter(tool => 
-      tool.name.toLowerCase().includes(query) || 
-      tool.description.toLowerCase().includes(query)
-    );
-  }, [activeFolder, searchQuery]);
+    // Default to alphabetical order for clean UI consistency
+    return tools.sort((a, b) => a.name.localeCompare(b.name));
+  }, [activeFolder, searchQuery, folders]);
 
   const handleLaunch = (tool: AITool) => {
+    setFolders(prev => {
+      const next = { ...prev };
+      for (const cat in next) {
+        const idx = next[cat].findIndex(t => t.id === tool.id);
+        if (idx !== -1) {
+          next[cat] = [...next[cat]];
+          next[cat][idx] = { ...next[cat][idx], clickCount: (next[cat][idx].clickCount || 0) + 1 };
+          break;
+        }
+      }
+      return next;
+    });
+
     setNavigatingTo(tool);
-    // Timed redirect to peak of animation
     setTimeout(() => {
       window.location.href = tool.url;
     }, 700);
   };
 
+  const handleReorder = (folderName: string, newTools: AITool[]) => {
+    setFolders(prev => ({ ...prev, [folderName]: newTools }));
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
-      {/* COSMIC BACKGROUND SYSTEM */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <Starfield />
-        
         <motion.div 
           animate={{ opacity: [0.03, 0.08, 0.03] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -77,7 +105,6 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* SEARCH & FOLDER CONTROLS CONTAINER */}
       <div className="relative z-50 flex flex-col items-center w-full max-w-lg px-8">
         <motion.h1 
           initial={{ y: -20, opacity: 0 }}
@@ -109,8 +136,12 @@ const App: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-transparent border-none py-3 px-4 text-white focus:outline-none placeholder:text-gray-700 tracking-[0.05em] text-base font-light font-tech"
             />
-            <button className="mr-1 p-2.5 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-full hover:shadow-[0_0_20px_rgba(139,92,246,0.6)] transition-all flex items-center justify-center">
-              <ChevronRight size={18} className="text-white" />
+            <button 
+              onClick={() => setIsManageOpen(true)}
+              className="mr-1 px-4 py-2 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-full hover:shadow-[0_0_20px_rgba(139,92,246,0.6)] transition-all flex items-center gap-2 group/btn"
+            >
+              <Settings size={18} className="text-white group-hover/btn:rotate-90 transition-transform duration-500" />
+              <span className="text-[10px] font-tech font-bold tracking-widest uppercase text-white hidden md:block">Manage</span>
             </button>
           </div>
         </motion.div>
@@ -121,12 +152,12 @@ const App: React.FC = () => {
           transition={{ delay: 0.6 }}
           className="mt-6 flex flex-wrap justify-center gap-2 px-4"
         >
-          {Object.keys(GALAXY_FOLDERS).map((folderName) => (
+          {folderNames.map((folderName) => (
             <button
               key={folderName}
               onClick={() => {
                 setActiveFolder(folderName);
-                setSearchQuery(''); // Clear search when switching folders to reset view
+                setSearchQuery('');
               }}
               className={`
                 px-4 py-1.5 rounded-full text-[9px] font-tech font-bold uppercase tracking-[0.3em] transition-all border backdrop-blur-md
@@ -141,9 +172,7 @@ const App: React.FC = () => {
         </motion.nav>
       </div>
 
-      {/* GALAXY ORBITAL RENDERING SYSTEM */}
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
-        {/* Visual Orbital Path - Height updated to multiplier 0.75 for vertical stretch */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-10">
           <ellipse 
             cx="50%" cy="50%" 
@@ -157,7 +186,7 @@ const App: React.FC = () => {
         </svg>
 
         <motion.div
-          key={activeFolder + (searchQuery ? '_search' : '_browse')}
+          key={activeFolder + (searchQuery ? '_search' : '_browse') + folderNames.length}
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
@@ -183,7 +212,14 @@ const App: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* EXPLOSION & EXPAND TRANSITION OVERLAY */}
+      <ManageOverlay 
+        isOpen={isManageOpen} 
+        onClose={() => setIsManageOpen(false)} 
+        folders={folders}
+        onUpdateFolders={setFolders}
+        onReorderTools={handleReorder}
+      />
+
       <AnimatePresence>
         {navigatingTo && (
           <motion.div
@@ -210,7 +246,6 @@ const App: React.FC = () => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              {/* Fallback glow if logo fails or for extra explosion effect */}
               <div className="absolute inset-0 bg-white rounded-full blur-2xl opacity-50 mix-blend-screen" />
             </motion.div>
           </motion.div>

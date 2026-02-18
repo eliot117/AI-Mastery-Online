@@ -1,3 +1,4 @@
+
 export interface AITool {
   id: string;
   name: string;
@@ -6,6 +7,7 @@ export interface AITool {
   category: string;
   icon: string;
   logoUrl?: string;
+  clickCount?: number;
 }
 
 export interface ToolFolder {
