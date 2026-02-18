@@ -166,6 +166,9 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     })
   };
 
+  // Shared button style for standardization
+  const actionButtonClass = "w-44 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white flex-shrink-0";
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -256,7 +259,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                           <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
                             <Plus size={14} /> {editingApp ? 'RECONFIGURE TOOL' : 'ADD AI APP OR TOOL'}
                           </h3>
-                          <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
                             <div className="md:col-span-1">
                               <input 
                                 type="text" 
@@ -293,10 +296,10 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                 {Object.keys(folders).map(f => <option key={f} value={f} className="bg-[#0f172a]">{f}</option>)}
                               </select>
                             </div>
-                            <div className="md:col-span-1 flex gap-2">
+                            <div className="md:col-span-1 flex gap-2 justify-end">
                               <button 
                                 type="submit"
-                                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white"
+                                className={actionButtonClass}
                               >
                                 {editingApp ? 'SAVE' : 'ADD'}
                               </button>
@@ -304,7 +307,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                 <button 
                                   type="button"
                                   onClick={() => editingApp ? setEditingApp(null) : setNewAppLogo(null)}
-                                  className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white"
+                                  className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white h-11"
                                 >
                                   <X size={16} />
                                 </button>
@@ -379,7 +382,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                         <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
                           <FolderPlus size={14} /> NEW SECTOR
                         </h3>
-                        <form onSubmit={handleAddFolder} className="flex gap-3">
+                        <form onSubmit={handleAddFolder} className="flex gap-3 items-center">
                           <input 
                             type="text" 
                             placeholder="Sector Identity"
@@ -389,7 +392,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                           />
                           <button 
                             type="submit"
-                            className="px-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white"
+                            className={actionButtonClass}
                           >
                             CREATE
                           </button>
