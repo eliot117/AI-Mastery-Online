@@ -21,6 +21,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'folders'>('apps');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [direction, setDirection] = useState(0); // 1 for right-to-left, -1 for left-to-right
+
   const [editingApp, setEditingApp] = useState<AITool | null>(null);
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'app' | 'folder', id: string } | null>(null);
@@ -138,9 +140,30 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     setEditingFolder(null);
   };
 
+  const switchTab = (tab: 'apps' | 'folders') => {
+    if (activeTab === tab) return;
+    setDirection(tab === 'folders' ? 1 : -1);
+    setActiveTab(tab);
+  };
+
   const switchViewMode = (mode: 'grid' | 'list') => {
     setViewMode(mode);
-    if (activeTab !== 'apps') setActiveTab('apps');
+    if (activeTab !== 'apps') switchTab('apps');
+  };
+
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? '100%' : '-100%',
+      opacity: 0
+    }),
+    center: {
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      x: direction > 0 ? '-100%' : '100%',
+      opacity: 0
+    })
   };
 
   return (
@@ -158,19 +181,22 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
             exit={{ scale: 0.95, y: 20 }}
             className="w-full max-w-7xl h-[85vh] glass-heavy rounded-[32px] border border-white/10 flex flex-col overflow-hidden relative"
           >
-            {/* Header */}
-            <div className="p-8 pb-4 flex items-center justify-between border-b border-white/5">
-              <div className="flex items-center gap-6">
-                <h2 className="text-3xl font-tech font-black tracking-tighter text-glow uppercase">ADMIN COMMAND CENTER</h2>
+            {/* Header: Centered Navigation */}
+            <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 items-center border-b border-white/5 gap-4">
+              <div className="flex items-center">
+                <h2 className="text-3xl font-tech font-black tracking-tighter text-glow uppercase leading-none">ADMIN COMMAND CENTER</h2>
+              </div>
+
+              <div className="flex justify-center order-3 md:order-2">
                 <nav className="flex items-center gap-1 bg-white/5 rounded-[24px] p-1">
                   <button 
-                    onClick={() => setActiveTab('apps')}
+                    onClick={() => switchTab('apps')}
                     className={`px-6 py-2 rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold ${activeTab === 'apps' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-500 hover:text-white'}`}
                   >
                     Applications
                   </button>
                   <button 
-                    onClick={() => setActiveTab('folders')}
+                    onClick={() => switchTab('folders')}
                     className={`px-6 py-2 rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold ${activeTab === 'folders' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-500 hover:text-white'}`}
                   >
                     Folders
@@ -178,8 +204,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                 </nav>
               </div>
 
-              <div className="flex items-center gap-4">
-                {/* Repositioned View Toggle */}
+              <div className="flex justify-end items-center gap-4 order-2 md:order-3">
                 <div className="flex items-center gap-1 bg-white/5 rounded-[24px] p-1 px-2">
                    <button 
                     onClick={() => switchViewMode('grid')}
@@ -206,200 +231,217 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
               </div>
             </div>
 
-            {/* Content Body */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-              {activeTab === 'apps' ? (
-                <div className="space-y-12">
-                  {/* COMPACT FORM - Grid only */}
-                  {viewMode === 'grid' && (
-                    <section className="bg-white/5 p-5 rounded-[24px] border border-white/5">
-                      <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
-                        <Plus size={14} /> {editingApp ? 'RECONFIGURE TOOL' : 'ADD AI APP OR TOOL'}
-                      </h3>
-                      <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div className="md:col-span-1">
+            {/* Sliding Content Body */}
+            <div className="flex-1 relative overflow-hidden">
+              <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                <motion.div
+                  key={activeTab}
+                  custom={direction}
+                  variants={variants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 }
+                  }}
+                  className="absolute inset-0 overflow-y-auto p-8 custom-scrollbar"
+                  ref={scrollContainerRef}
+                >
+                  {activeTab === 'apps' ? (
+                    <div className="space-y-12">
+                      {/* COMPACT FORM */}
+                      {viewMode === 'grid' && (
+                        <section className="bg-white/5 p-5 rounded-[24px] border border-white/5">
+                          <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
+                            <Plus size={14} /> {editingApp ? 'RECONFIGURE TOOL' : 'ADD AI APP OR TOOL'}
+                          </h3>
+                          <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className="md:col-span-1">
+                              <input 
+                                type="text" 
+                                placeholder="Name"
+                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
+                                value={editingApp ? editingApp.name : newAppName}
+                                onChange={(e) => editingApp ? setEditingApp({...editingApp, name: e.target.value}) : setNewAppName(e.target.value)}
+                              />
+                            </div>
+                            <div className="md:col-span-1">
+                              <input 
+                                type="text" 
+                                placeholder="URL"
+                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
+                                value={editingApp ? editingApp.url : newAppUrl}
+                                onChange={(e) => editingApp ? setEditingApp({...editingApp, url: e.target.value}) : setNewAppUrl(e.target.value)}
+                              />
+                            </div>
+                            <div className="md:col-span-1 flex gap-2">
+                              <button 
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold text-gray-400 hover:text-white transition-all"
+                              >
+                                {(editingApp?.logoUrl || newAppLogo) ? <Check size={14} className="text-green-500" /> : <Upload size={14} />}
+                                {(editingApp?.logoUrl || newAppLogo) ? 'Logo Set' : 'Logo'}
+                              </button>
+                              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                              <select 
+                                className="w-2/5 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold appearance-none focus:outline-none focus:border-purple-500/50 transition-all text-white cursor-pointer"
+                                value={editingApp ? editingApp.category : newAppFolder}
+                                onChange={(e) => editingApp ? setEditingApp({...editingApp, category: e.target.value}) : setNewAppFolder(e.target.value)}
+                              >
+                                {Object.keys(folders).map(f => <option key={f} value={f} className="bg-[#0f172a]">{f}</option>)}
+                              </select>
+                            </div>
+                            <div className="md:col-span-1 flex gap-2">
+                              <button 
+                                type="submit"
+                                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white"
+                              >
+                                {editingApp ? 'SAVE' : 'ADD'}
+                              </button>
+                              {(editingApp || newAppLogo) && (
+                                <button 
+                                  type="button"
+                                  onClick={() => editingApp ? setEditingApp(null) : setNewAppLogo(null)}
+                                  className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white"
+                                >
+                                  <X size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </form>
+                        </section>
+                      )}
+
+                      {/* Directory Section */}
+                      <div className="space-y-12">
+                        {(Object.entries(folders) as [string, AITool[]][]).map(([folderName, tools]) => (
+                          <div key={folderName} className="space-y-6">
+                            <div className="flex items-center gap-4 px-2">
+                               <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter leading-none">{folderName}</h3>
+                               <div className="h-[1px] flex-1 bg-white/10" />
+                               <span className="text-4xl font-sans font-black text-purple-600/40 leading-none">{tools.length}</span>
+                            </div>
+                            
+                            {viewMode === 'grid' ? (
+                              <Reorder.Group 
+                                axis="y" 
+                                values={tools} 
+                                onReorder={(newOrder) => onReorderTools(folderName, newOrder)}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                              >
+                                {tools.map(tool => (
+                                  <Reorder.Item 
+                                    key={tool.id} 
+                                    value={tool}
+                                    className="group flex items-center justify-between p-5 bg-white/5 rounded-[24px] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.07]"
+                                  >
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex items-center gap-3">
+                                        <GripVertical size={16} className="text-gray-700 group-hover:text-gray-400 cursor-grab active:cursor-grabbing" />
+                                        <div className="w-11 h-11 rounded-[16px] bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
+                                          {tool.logoUrl ? (
+                                            <img src={tool.logoUrl} className="w-full h-full object-contain" />
+                                          ) : (
+                                            <span className="text-xl">{tool.icon}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <h4 className="text-[12px] font-sans font-black text-white tracking-wide uppercase">{tool.name}</h4>
+                                        <p className="text-[10px] font-sans font-bold text-gray-500 truncate max-w-[180px]">{new URL(tool.url).hostname}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => setEditingApp(tool)} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-blue-400 transition-all"><Edit2 size={16}/></button>
+                                      <button onClick={() => setConfirmDelete({type: 'app', id: tool.id})} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-400 transition-all"><Trash2 size={16}/></button>
+                                    </div>
+                                  </Reorder.Item>
+                                ))}
+                              </Reorder.Group>
+                            ) : (
+                              <div className="space-y-1 pl-4">
+                                {tools.map(tool => (
+                                  <div key={tool.id} className="text-sm font-sans font-medium text-gray-400 hover:text-white transition-colors py-1 cursor-default uppercase tracking-widest">
+                                    {tool.name}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-12">
+                      <section className="bg-white/5 p-5 rounded-[24px] border border-white/5">
+                        <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
+                          <FolderPlus size={14} /> NEW SECTOR
+                        </h3>
+                        <form onSubmit={handleAddFolder} className="flex gap-3">
                           <input 
                             type="text" 
-                            placeholder="Name"
-                            className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
-                            value={editingApp ? editingApp.name : newAppName}
-                            onChange={(e) => editingApp ? setEditingApp({...editingApp, name: e.target.value}) : setNewAppName(e.target.value)}
+                            placeholder="Sector Identity"
+                            className="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
                           />
-                        </div>
-                        <div className="md:col-span-1">
-                          <input 
-                            type="text" 
-                            placeholder="URL"
-                            className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
-                            value={editingApp ? editingApp.url : newAppUrl}
-                            onChange={(e) => editingApp ? setEditingApp({...editingApp, url: e.target.value}) : setNewAppUrl(e.target.value)}
-                          />
-                        </div>
-                        <div className="md:col-span-1 flex gap-2">
-                          <button 
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold text-gray-400 hover:text-white transition-all"
-                          >
-                            {(editingApp?.logoUrl || newAppLogo) ? <Check size={14} className="text-green-500" /> : <Upload size={14} />}
-                            {(editingApp?.logoUrl || newAppLogo) ? 'Logo Set' : 'Logo'}
-                          </button>
-                          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                          <select 
-                            className="w-2/5 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold appearance-none focus:outline-none focus:border-purple-500/50 transition-all text-white cursor-pointer"
-                            value={editingApp ? editingApp.category : newAppFolder}
-                            onChange={(e) => editingApp ? setEditingApp({...editingApp, category: e.target.value}) : setNewAppFolder(e.target.value)}
-                          >
-                            {Object.keys(folders).map(f => <option key={f} value={f} className="bg-[#0f172a]">{f}</option>)}
-                          </select>
-                        </div>
-                        <div className="md:col-span-1 flex gap-2">
                           <button 
                             type="submit"
-                            className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white"
+                            className="px-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white"
                           >
-                            {editingApp ? 'SAVE' : 'ADD'}
+                            CREATE
                           </button>
-                          {(editingApp || newAppLogo) && (
-                            <button 
-                              type="button"
-                              onClick={() => editingApp ? setEditingApp(null) : setNewAppLogo(null)}
-                              className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white"
-                            >
-                              <X size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </form>
-                    </section>
-                  )}
+                        </form>
+                      </section>
 
-                  {/* Directory Section */}
-                  <div className="space-y-12">
-                    {(Object.entries(folders) as [string, AITool[]][]).map(([folderName, tools]) => (
-                      <div key={folderName} className="space-y-6">
-                        <div className="flex items-center gap-4 px-2">
-                           <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter">{folderName}</h3>
-                           <div className="h-[1px] flex-1 bg-white/10" />
-                           <span className="text-4xl font-sans font-black text-purple-600/40">{tools.length}</span>
-                        </div>
-                        
-                        {viewMode === 'grid' ? (
-                          <Reorder.Group 
-                            axis="y" 
-                            values={tools} 
-                            onReorder={(newOrder) => onReorderTools(folderName, newOrder)}
-                            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                          >
-                            {tools.map(tool => (
-                              <Reorder.Item 
-                                key={tool.id} 
-                                value={tool}
-                                className="group flex items-center justify-between p-5 bg-white/5 rounded-[24px] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.07]"
-                              >
-                                <div className="flex items-center gap-4">
-                                  <div className="flex items-center gap-3">
-                                    <GripVertical size={16} className="text-gray-700 group-hover:text-gray-400 cursor-grab active:cursor-grabbing" />
-                                    <div className="w-11 h-11 rounded-[16px] bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
-                                      {tool.logoUrl ? (
-                                        <img src={tool.logoUrl} className="w-full h-full object-contain" />
-                                      ) : (
-                                        <span className="text-xl">{tool.icon}</span>
-                                      )}
-                                    </div>
+                      <div className="space-y-6">
+                         <h3 className="text-xs font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">ORBITAL SECTORS</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {(Object.entries(folders) as [string, AITool[]][]).map(([name, tools]) => (
+                               <div key={name} className="group p-8 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between min-h-[160px]">
+                                  <div className="flex items-start justify-between">
+                                     <div className="flex items-center gap-3">
+                                        <GripVertical size={16} className="text-gray-700 group-hover:text-gray-500" />
+                                        {editingFolder === name ? (
+                                           <input 
+                                              autoFocus
+                                              defaultValue={name}
+                                              onBlur={(e) => handleRenameFolder(name, e.target.value)}
+                                              onKeyDown={(e) => e.key === 'Enter' && handleRenameFolder(name, e.currentTarget.value)}
+                                              className="bg-transparent border-b border-purple-500 focus:outline-none text-white font-sans font-black text-xl uppercase tracking-widest w-full mr-4 rounded-[24px] px-2"
+                                           />
+                                        ) : (
+                                           <h4 className="text-xl font-sans font-black text-white tracking-widest uppercase truncate leading-none">{name}</h4>
+                                        )}
+                                     </div>
+                                     <div className="flex gap-1">
+                                        <button onClick={() => setEditingFolder(name)} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-white transition-all"><Edit2 size={16}/></button>
+                                        <button onClick={() => setConfirmDelete({type: 'folder', id: name})} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-500 transition-all"><Trash2 size={16}/></button>
+                                     </div>
                                   </div>
-                                  <div>
-                                    <h4 className="text-[12px] font-sans font-black text-white tracking-wide uppercase">{tool.name}</h4>
-                                    <p className="text-[10px] font-sans font-bold text-gray-500 truncate max-w-[180px]">{new URL(tool.url).hostname}</p>
+                                  <div className="flex items-center justify-between mt-8">
+                                     <div className="flex -space-x-3">
+                                        {tools.slice(0, 5).map(t => (
+                                           <div key={t.id} className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black">
+                                              {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain" /> : <span className="text-sm">{t.icon}</span>}
+                                           </div>
+                                        ))}
+                                     </div>
+                                     <div className="flex flex-col items-end">
+                                        <span className="text-3xl font-sans font-black text-white leading-none">{tools.length}</span>
+                                        <span className="text-[9px] font-sans font-bold text-purple-500/60 uppercase tracking-widest">TOOLS</span>
+                                     </div>
                                   </div>
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => setEditingApp(tool)} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-blue-400 transition-all"><Edit2 size={16}/></button>
-                                  <button onClick={() => setConfirmDelete({type: 'app', id: tool.id})} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-400 transition-all"><Trash2 size={16}/></button>
-                                </div>
-                              </Reorder.Item>
+                               </div>
                             ))}
-                          </Reorder.Group>
-                        ) : (
-                          <div className="space-y-1 pl-4">
-                            {tools.map(tool => (
-                              <div key={tool.id} className="text-sm font-sans font-medium text-gray-400 hover:text-white transition-colors py-1 cursor-default uppercase tracking-widest">
-                                {tool.name}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-12">
-                  <section className="bg-white/5 p-5 rounded-[24px] border border-white/5">
-                    <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
-                      <FolderPlus size={14} /> NEW SECTOR
-                    </h3>
-                    <form onSubmit={handleAddFolder} className="flex gap-3">
-                      <input 
-                        type="text" 
-                        placeholder="Sector Identity"
-                        className="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white"
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                      />
-                      <button 
-                        type="submit"
-                        className="px-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white"
-                      >
-                        CONSTRUCT
-                      </button>
-                    </form>
-                  </section>
-
-                  <div className="space-y-6">
-                     <h3 className="text-xs font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">ORBITAL SECTORS</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {(Object.entries(folders) as [string, AITool[]][]).map(([name, tools]) => (
-                           <div key={name} className="group p-8 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between min-h-[160px]">
-                              <div className="flex items-start justify-between">
-                                 <div className="flex items-center gap-3">
-                                    <GripVertical size={16} className="text-gray-700 group-hover:text-gray-500" />
-                                    {editingFolder === name ? (
-                                       <input 
-                                          autoFocus
-                                          defaultValue={name}
-                                          onBlur={(e) => handleRenameFolder(name, e.target.value)}
-                                          onKeyDown={(e) => e.key === 'Enter' && handleRenameFolder(name, e.currentTarget.value)}
-                                          className="bg-transparent border-b border-purple-500 focus:outline-none text-white font-sans font-black text-xl uppercase tracking-widest w-full mr-4 rounded-[24px]"
-                                       />
-                                    ) : (
-                                       <h4 className="text-xl font-sans font-black text-white tracking-widest uppercase truncate leading-none">{name}</h4>
-                                    )}
-                                 </div>
-                                 <div className="flex gap-1">
-                                    <button onClick={() => setEditingFolder(name)} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-white transition-all"><Edit2 size={16}/></button>
-                                    <button onClick={() => setConfirmDelete({type: 'folder', id: name})} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-500 transition-all"><Trash2 size={16}/></button>
-                                 </div>
-                              </div>
-                              <div className="flex items-center justify-between mt-8">
-                                 <div className="flex -space-x-3">
-                                    {tools.slice(0, 5).map(t => (
-                                       <div key={t.id} className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black">
-                                          {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain" /> : <span className="text-sm">{t.icon}</span>}
-                                       </div>
-                                    ))}
-                                 </div>
-                                 <div className="flex flex-col items-end">
-                                    <span className="text-3xl font-sans font-black text-white leading-none">{tools.length}</span>
-                                    <span className="text-[9px] font-sans font-bold text-purple-500/60 uppercase tracking-widest">TOOLS</span>
-                                 </div>
-                              </div>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-                </div>
-              )}
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             {/* Confirmation Overlay */}
