@@ -153,21 +153,21 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
   const variants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? '100%' : '-100%',
-      opacity: 0
+      x: direction > 0 ? '50%' : '-50%',
+      opacity: 0,
     }),
     center: {
       x: 0,
-      opacity: 1
+      opacity: 1,
     },
     exit: (direction: number) => ({
-      x: direction > 0 ? '-100%' : '100%',
-      opacity: 0
+      x: direction > 0 ? '-50%' : '50%',
+      opacity: 0,
     })
   };
 
-  // Shared button style for standardization
-  const actionButtonClass = "w-44 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl py-3 rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white flex-shrink-0";
+  // Shared button style for standardization - LOCKED SIZE
+  const actionButtonClass = "w-44 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white flex-shrink-0 h-11 flex items-center justify-center";
 
   return (
     <AnimatePresence>
@@ -184,26 +184,38 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
             exit={{ scale: 0.95, y: 20 }}
             className="w-full max-w-7xl h-[85vh] glass-heavy rounded-[32px] border border-white/10 flex flex-col overflow-hidden relative"
           >
-            {/* Header: Centered Navigation */}
-            <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 items-center border-b border-white/5 gap-4">
-              <div className="flex items-center">
-                <h2 className="text-3xl font-tech font-black tracking-tighter text-glow uppercase leading-none">ADMIN COMMAND CENTER</h2>
+            {/* Header: Enlarged Title & Symmetrical Navigation */}
+            <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 items-center border-b border-white/5">
+              <div className="flex items-center min-w-0 pr-12">
+                <h2 className="text-lg md:text-2xl font-tech font-black tracking-tighter text-glow uppercase leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                  ADMIN COMMAND CENTER
+                </h2>
               </div>
 
               <div className="flex justify-center order-3 md:order-2">
-                <nav className="flex items-center gap-1 bg-white/5 rounded-[24px] p-1">
+                <nav className="flex items-center bg-white/5 rounded-[24px] p-1 relative overflow-hidden w-[280px] h-11">
                   <button 
                     onClick={() => switchTab('apps')}
-                    className={`px-6 py-2 rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold ${activeTab === 'apps' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-500 hover:text-white'}`}
+                    className={`relative z-10 w-1/2 h-full rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold flex items-center justify-center ${activeTab === 'apps' ? 'text-white' : 'text-gray-500 hover:text-white'}`}
                   >
                     Applications
                   </button>
                   <button 
                     onClick={() => switchTab('folders')}
-                    className={`px-6 py-2 rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold ${activeTab === 'folders' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-500 hover:text-white'}`}
+                    className={`relative z-10 w-1/2 h-full rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold flex items-center justify-center ${activeTab === 'folders' ? 'text-white' : 'text-gray-500 hover:text-white'}`}
                   >
                     Folders
                   </button>
+                  {/* Sliding Pill Indicator - Synchronized */}
+                  <motion.div
+                    className="absolute h-[calc(100%-8px)] bg-purple-600 rounded-[20px] shadow-lg shadow-purple-600/30"
+                    initial={false}
+                    animate={{
+                      left: activeTab === 'apps' ? 4 : 'calc(50% + 0px)',
+                      width: 'calc(50% - 4px)'
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                  />
                 </nav>
               </div>
 
@@ -234,8 +246,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
               </div>
             </div>
 
-            {/* Sliding Content Body */}
-            <div className="flex-1 relative overflow-hidden">
+            {/* Synchronized Sliding Content Body */}
+            <div className="flex-1 relative overflow-hidden bg-black/10">
               <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                 <motion.div
                   key={activeTab}
@@ -245,58 +257,58 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                   animate="center"
                   exit="exit"
                   transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 }
+                    x: { type: "spring", stiffness: 350, damping: 35 },
+                    opacity: { duration: 0.3 }
                   }}
                   className="absolute inset-0 overflow-y-auto p-8 custom-scrollbar"
                   ref={scrollContainerRef}
                 >
                   {activeTab === 'apps' ? (
                     <div className="space-y-12">
-                      {/* COMPACT FORM */}
+                      {/* COMPACT FORM - Tightened and Polished */}
                       {viewMode === 'grid' && (
-                        <section className="bg-white/5 p-5 rounded-[24px] border border-white/5">
-                          <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
+                        <section className="bg-white/5 p-4 rounded-[24px] border border-white/5">
+                          <h3 className="text-[10px] font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
                             <Plus size={14} /> {editingApp ? 'RECONFIGURE TOOL' : 'ADD AI APP OR TOOL'}
                           </h3>
-                          <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
-                            <div className="md:col-span-1">
+                          <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="flex flex-col md:flex-row gap-2 items-center w-full">
+                            <div className="flex-1 w-full">
                               <input 
                                 type="text" 
                                 placeholder="Name"
-                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
+                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
                                 value={editingApp ? editingApp.name : newAppName}
                                 onChange={(e) => editingApp ? setEditingApp({...editingApp, name: e.target.value}) : setNewAppName(e.target.value)}
                               />
                             </div>
-                            <div className="md:col-span-1">
+                            <div className="flex-1 w-full">
                               <input 
                                 type="text" 
                                 placeholder="URL"
-                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
+                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
                                 value={editingApp ? editingApp.url : newAppUrl}
                                 onChange={(e) => editingApp ? setEditingApp({...editingApp, url: e.target.value}) : setNewAppUrl(e.target.value)}
                               />
                             </div>
-                            <div className="md:col-span-1 flex gap-2">
+                            <div className="flex-1 w-full flex gap-2">
                               <button 
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold text-gray-400 hover:text-white transition-all"
+                                className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold text-gray-400 hover:text-white transition-all h-11"
                               >
                                 {(editingApp?.logoUrl || newAppLogo) ? <Check size={14} className="text-green-500" /> : <Upload size={14} />}
                                 {(editingApp?.logoUrl || newAppLogo) ? 'Logo Set' : 'Logo'}
                               </button>
                               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
                               <select 
-                                className="w-2/5 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold appearance-none focus:outline-none focus:border-purple-500/50 transition-all text-white cursor-pointer"
+                                className="w-2/5 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold appearance-none focus:outline-none focus:border-purple-500/50 transition-all text-white cursor-pointer h-11 text-center"
                                 value={editingApp ? editingApp.category : newAppFolder}
                                 onChange={(e) => editingApp ? setEditingApp({...editingApp, category: e.target.value}) : setNewAppFolder(e.target.value)}
                               >
                                 {Object.keys(folders).map(f => <option key={f} value={f} className="bg-[#0f172a]">{f}</option>)}
                               </select>
                             </div>
-                            <div className="md:col-span-1 flex gap-2 justify-end">
+                            <div className="flex gap-2 items-center justify-end">
                               <button 
                                 type="submit"
                                 className={actionButtonClass}
@@ -307,7 +319,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                 <button 
                                   type="button"
                                   onClick={() => editingApp ? setEditingApp(null) : setNewAppLogo(null)}
-                                  className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white h-11"
+                                  className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white h-11 flex items-center justify-center"
                                 >
                                   <X size={16} />
                                 </button>
@@ -378,15 +390,15 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                     </div>
                   ) : (
                     <div className="space-y-12">
-                      <section className="bg-white/5 p-5 rounded-[24px] border border-white/5">
-                        <h3 className="text-xs font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
+                      <section className="bg-white/5 p-4 rounded-[24px] border border-white/5">
+                        <h3 className="text-[10px] font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
                           <FolderPlus size={14} /> NEW SECTOR
                         </h3>
-                        <form onSubmit={handleAddFolder} className="flex gap-3 items-center">
+                        <form onSubmit={handleAddFolder} className="flex gap-2 items-center">
                           <input 
                             type="text" 
                             placeholder="Sector Identity"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600"
+                            className="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
                             value={newFolderName}
                             onChange={(e) => setNewFolderName(e.target.value)}
                           />
@@ -400,7 +412,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                       </section>
 
                       <div className="space-y-6">
-                         <h3 className="text-xs font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">ORBITAL SECTORS</h3>
+                         <h3 className="text-[10px] font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">ORBITAL SECTORS</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {(Object.entries(folders) as [string, AITool[]][]).map(([name, tools]) => (
                                <div key={name} className="group p-8 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between min-h-[160px]">
