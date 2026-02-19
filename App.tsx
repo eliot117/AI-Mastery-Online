@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
@@ -53,16 +52,17 @@ const App: React.FC = () => {
     const query = searchQuery.trim().toLowerCase();
 
     if (!query) {
-      tools = [...(folders[activeFolder] || [])];
+      // Respect fixed folder ordering when not searching
+      return [...(folders[activeFolder] || [])];
     } else {
+      // Filter across all folders when searching
       tools = (Object.values(folders).flat() as AITool[]).filter(tool => 
         tool.name.toLowerCase().includes(query) || 
         tool.description.toLowerCase().includes(query)
       );
+      // Alphabetical sort ONLY during search for clarity
+      return tools.sort((a, b) => a.name.localeCompare(b.name));
     }
-
-    // Default to alphabetical order for clean UI consistency
-    return tools.sort((a, b) => a.name.localeCompare(b.name));
   }, [activeFolder, searchQuery, folders]);
 
   const handleLaunch = (tool: AITool) => {
