@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion, useTransform, MotionValue } from 'framer-motion';
 import { AITool } from '../types';
@@ -95,12 +96,13 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
                 alt={tool.name} 
                 className="w-full h-full object-contain filter drop-shadow-2xl bg-transparent"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%%22 y=%2250%%22 dy=%22.35em%22 text-anchor=%22middle%22 font-size=%2260%22 fill=%22white%22>${tool.icon}</text></svg>`;
+                  // Fallback to high-tech character monogram, never emojis
+                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22none%22/><text x=%2250%%22 y=%2250%%22 dy=%22.35em%22 text-anchor=%22middle%22 font-family=%22Orbitron, sans-serif%22 font-weight=%22bold%22 font-size=%2260%22 fill=%22white%22>${tool.name.charAt(0)}</text></svg>`;
                 }}
               />
             </div>
             
-            {/* App Label - STRICT ISOLATION: 10px, max 2 lines, keep-all word integrity, vertically centered block */}
+            {/* App Label - STRICT ISOLATION: 10px, max 2 lines */}
             <div className="relative z-10 w-full flex items-center justify-center min-h-[2.4em]">
               <span className="px-2 text-[10px] font-tech font-bold text-white/95 tracking-[0.1em] uppercase text-center whitespace-normal [word-break:keep-all] line-clamp-2 leading-tight drop-shadow-sm">
                 {tool.name}

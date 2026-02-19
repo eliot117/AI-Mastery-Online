@@ -1,8 +1,12 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { X, Plus, Trash2, Edit2, FolderPlus, LayoutGrid, List, Upload, GripVertical, Check } from 'lucide-react';
 import { AITool } from '../types';
+
+/**
+ * LOGO PROTOCOL: To import new logos, use a direct HTTPS URL to a CDN or brand-hosted PNG/SVG. 
+ * Never use emojis. Ensure all logo containers maintain a consistent 1:1 aspect ratio with object-contain.
+ */
 
 interface ManageOverlayProps {
   isOpen: boolean;
@@ -30,7 +34,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   const [newAppName, setNewAppName] = useState('');
   const [newAppUrl, setNewAppUrl] = useState('');
   const [newAppLogo, setNewAppLogo] = useState<string | null>(null);
-  const [newAppIcon, setNewAppIcon] = useState('🚀');
+  const [newAppIcon, setNewAppIcon] = useState('A');
   const [newAppFolder, setNewAppFolder] = useState(Object.keys(folders)[0] || '');
 
   const [newFolderName, setNewFolderName] = useState('');
@@ -70,7 +74,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       url: newAppUrl,
       description: 'Added via Admin Command Center',
       category: newAppFolder,
-      icon: newAppIcon,
+      icon: newAppName.charAt(0),
       logoUrl: newAppLogo || undefined,
       clickCount: 0
     };
@@ -83,7 +87,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     setNewAppName('');
     setNewAppUrl('');
     setNewAppLogo(null);
-    setNewAppIcon('🚀');
+    setNewAppIcon('A');
   };
 
   const handleUpdateApp = (e: React.FormEvent) => {
@@ -166,7 +170,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     })
   };
 
-  // Shared button style for standardization - LOCKED SIZE
   const actionButtonClass = "w-44 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-xl rounded-[24px] font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white flex-shrink-0 h-11 flex items-center justify-center";
 
   return (
@@ -184,12 +187,10 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
             exit={{ scale: 0.95, y: 20 }}
             className="w-full max-w-7xl h-[85vh] glass-heavy rounded-[32px] border border-white/10 flex flex-col overflow-hidden relative"
           >
-            {/* Header: Enlarged Title & Symmetrical Navigation */}
+            {/* Header: Title-free structure with Symmetrical Navigation */}
             <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 items-center border-b border-white/5">
               <div className="flex items-center min-w-0 pr-12">
-                <h2 className="text-lg md:text-2xl font-tech font-black tracking-tighter text-glow uppercase leading-none whitespace-nowrap overflow-hidden text-ellipsis">
-                  ADMIN COMMAND CENTER
-                </h2>
+                {/* Title-free aesthetic header block */}
               </div>
 
               <div className="flex justify-center order-3 md:order-2">
@@ -206,7 +207,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                   >
                     Folders
                   </button>
-                  {/* Sliding Pill Indicator - Synchronized */}
                   <motion.div
                     className="absolute h-[calc(100%-8px)] bg-purple-600 rounded-[20px] shadow-lg shadow-purple-600/30"
                     initial={false}
@@ -246,7 +246,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
               </div>
             </div>
 
-            {/* Synchronized Sliding Content Body */}
             <div className="flex-1 relative overflow-hidden bg-black/10">
               <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                 <motion.div
@@ -265,7 +264,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                 >
                   {activeTab === 'apps' ? (
                     <div className="space-y-12">
-                      {/* COMPACT FORM - Tightened and Polished */}
                       {viewMode === 'grid' && (
                         <section className="bg-white/5 p-4 rounded-[24px] border border-white/5">
                           <h3 className="text-[10px] font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
@@ -329,13 +327,12 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                         </section>
                       )}
 
-                      {/* Directory Section */}
                       <div className="space-y-12">
                         {(Object.entries(folders) as [string, AITool[]][]).map(([folderName, tools]) => (
                           <div key={folderName} className="space-y-6">
-                            <div className="flex items-center gap-4 px-2">
-                               <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter leading-none">{folderName}</h3>
-                               <div className="h-[1px] flex-1 bg-white/10" />
+                            <div className="flex flex-col items-center gap-4 px-2">
+                               <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter leading-none text-center">{folderName}</h3>
+                               <div className="h-[1px] w-1/4 bg-white/10" />
                                <span className="text-4xl font-sans font-black text-purple-600/40 leading-none">{tools.length}</span>
                             </div>
                             
@@ -359,7 +356,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                           {tool.logoUrl ? (
                                             <img src={tool.logoUrl} className="w-full h-full object-contain" />
                                           ) : (
-                                            <span className="text-xl">{tool.icon}</span>
+                                            <span className="text-xl font-tech font-bold text-white/40">{tool.icon.charAt(0)}</span>
                                           )}
                                         </div>
                                       </div>
@@ -376,7 +373,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                 ))}
                               </Reorder.Group>
                             ) : (
-                              <div className="space-y-1 pl-4">
+                              <div className="space-y-1 pl-4 text-center">
                                 {tools.map(tool => (
                                   <div key={tool.id} className="text-sm font-sans font-medium text-gray-400 hover:text-white transition-colors py-1 cursor-default uppercase tracking-widest">
                                     {tool.name}
@@ -440,7 +437,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                      <div className="flex -space-x-3">
                                         {tools.slice(0, 5).map(t => (
                                            <div key={t.id} className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black">
-                                              {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain" /> : <span className="text-sm">{t.icon}</span>}
+                                              {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain" /> : <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>}
                                            </div>
                                         ))}
                                      </div>
@@ -459,7 +456,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Confirmation Overlay */}
             <AnimatePresence>
               {confirmDelete && (
                 <motion.div 
