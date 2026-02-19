@@ -1,3 +1,4 @@
+
 import { AITool } from './types';
 
 /**
@@ -6,13 +7,13 @@ import { AITool } from './types';
  * - Optimized SVGs: Recreated for maximum sharpness and branding accuracy.
  */
 
-const TWAIN_GPT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgNjAiPjx0ZXh0IHg9IjEwIiB5PSI0MiIgZm9udC1mYW1pbHk9Ik91dGZpdCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjYwMCIgZm9udC1zaXplPSIzNCIgZmlsbD0id2hpdGUiPnR3YWluPC90ZXh0PjxyZWN0IHg9IjEwNSIgeT0iMTQiIHdpZHRoPSI1NCIgaGVpZ2h0PSIzOCIgcng9IjgiIGZpbGw9IiMyNTYzZWIiLz48dGV4dCB4PSIxMzIiIHk9IjQwIiBmb250LWZhbWlseT0iT3V0Zml0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjIyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R1BUPC90ZXh0Pjwvc3ZnPg==";
+const TWAIN_GPT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgNjAiPjx0ZXh0IHg9IjEwIHg9IjQyIiBmb250LWZhbWlseT0iT3V0Zml0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNjAwIiBmb250LXNpemU9IjM0IiBmaWxsPSJ3aGl0ZSI+dHdhaW48L3RleHQ+PHJlY3QgeD0iMTA1IiB5PSIxNCIgd2lkdGg9IjU0IiBoZWlnaHQ9IjM4IiByeD0iOCIgZmlsbD0iIzI1NjNlYiIvPjx0ZXh0IHg9IjEzMiIgeT0iNDAiIGZvbnQtZmFtaWx5PSJPdXRmaXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HUFQ8L3RleHQ+PC9zdmc+";
 
 const OPAL_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgNjAiPjx0ZXh0IHg9IjYwIiB5PSI0MiIgZm9udC1mYW1pbHk9Ik91dGZpdCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1zaXplPSIzOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wYWw8L3RleHQ+PC9zdmc+";
 
 const PHYGITAL_PLUS_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDMwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlYzQ4OTkiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48dGV4dCB4PSI1MCUiIHk9IjcwJSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ik91dGZpdCwgSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNjQiIGZpbGw9InVybCgjZzEpIj5QaHlnaXRhbCs8L3RleHQ+PC9zdmc+";
 
-const KIMI_AI_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxNDAiIGZpbGw9ImJsYWNrIi8+PHBhdGggZD0iTTE2NSAxMTBWNDAyTTE2NSAyNTZMMzA1IDExME0xNjUgMjU2TDMwNSA0MDIiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMTE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSIzOTUiIGN5PSIxMjUiIHI9Ijc1IiBmaWxsPSIjM2I4MmY2Ii8+PC9zdmc+";
+const KIMI_AI_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxNDAiIGZpbGw9ImJsYWNrIi8+PHBhdGggZD0iTTE2NSAxMTBWNDAyTTE2NSAyNTZMMzA1IDExME0xNjUgMjU2TDMwNSA0MDIiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMTE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSIzOTUzOTUiIGN5PSIxMjUiIHI9Ijc1IiBmaWxsPSIjM2I4MmY2Ii8+PC9zdmc+";
 
 const FORWARD_FUTURE_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJoYWxvR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNlZjQ0NDQiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjM2I4MmY2IiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjQ4IiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjaGFsb0dyYWQpIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNiIgLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MCwgNTApIHNjYWxlKDAuNikgdHJhbnNsYXRlKC01MCwgLTUwKSI+PHBhdGggZD0iTTM1IDg1IEw2NSA1NSBMNzAgMTAwIEwzMCAxMDAgWiIgZmlsbD0id2hpdGUiIC8+PHBhdGggZD0iTTUwIDE1IEMyNSAxNSAyNSA4MCA1MCA4MCBDNzUgODAgNzUgMTUgNTAgMTUgWiIgZmlsbD0id2hpdGUiIC8+PHBhdGggZD0iTTMyIDM1IEMzMiAyOCA2OCAyOCA2OCAzNSBDNjggNTUgMzIgNTUgMzIgMzUgWiIgZmlsbD0iIzBmMTcyYSIgLz48cmVjdCB4PSI1OCIgeT0iMzIiIHdpZHRoPSI1IiBoZWlnaHQ9IjIiIGZpbGw9IiNlZjQ0NDQiIHJ4PSIxIiB0cmFuc2Zvcm09InJvdGF0ZSgtMTUsIDYwLCAzMykiIC8+PHJlY3QgeD0iNjEiIHk9IjM1IiB3aWR0aD0iNCIgaGVpZ2h0PSIyIiBmaWxsPSIjZjk3MzE2IiByeD0iMSIgdHJhbnNmb3JtPSJyb3RhdGUoLTE1LCA2MywgMzYpIiAvPjwvZz48L3N2Zz4=";
 
@@ -25,6 +26,10 @@ const GITHUB_COPILOT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL
 const TWENTY_FIRST_DEV_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTMwIDQwYzAtNiA0LTEwIDEwLTEwaDEwYzYgMCAxMCA0IDEwIDEwdjZjMCA2LTQgMTAtMTAgMTBoLTEwdjhoMjB2NkgzMFY1MGgyMGMyIDAgNC0yIDQtNHYtNmMwLTItMi00LTQtNEg0MGMtMiAwLTQgMi00IDR6IE02MiAzMGg4djQwaC04eiIvPjwvc3ZnPg==";
 
 const SENTRY_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9IndoaXRlIiBkPSJNMTIgNEwyMCAxOEg0TDEyIDRaIi8+PC9zdmc+";
+
+const ANIMEJS_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MCwgNTApIj48cGF0aCBkPSJNLTMwIDMwIEwgMCAtMzAIEwgMzAgMzAgTCAxNSAzMCBMIDAgMCBMIC0xNSAzMCIgZmlsbD0iI0Y5RDQyMyIvPjxwYXRoIGQ9Ik0tMjAgNDAgTCAwIC00MCBMIDIwIDQwIEwgMzAgNDAgTCAwIC02MCBMIC0zMCA0MCBaIiBmaWxsPSJibGFjayIvPjwvZz48L3N2Zz4=";
+
+const ONEPAGE_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjI0IiBmaWxsPSIjMjU2M2ViIi8+PHBhdGggZD0iTTM1IDgwIEwzNSA0NSBMIDMwIDQ1IEwgMzAgMzUgTCA0NSAzNSBMIDQ1IDgwIFoiIGZpbGw9IndoaXRlIi8+PC9zdmc+";
 
 export const GALAXY_FOLDERS: Record<string, AITool[]> = {
   "Agents": [
@@ -70,6 +75,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'b8', name: "Sentry", url: "https://h-nj6.sentry.io/dashboards/", description: "Error & Performance Monitoring", category: "Business", icon: "🛡️", logoUrl: SENTRY_LOGO }
   ],
   "Build": [
+    { id: 'bd0', name: "OnePage", url: "https://app.onepage.io/sites", description: "The easiest website builder", category: "Build", icon: "📄", logoUrl: ONEPAGE_LOGO },
     { id: 'bd1', name: "Panda", url: "https://app.usepanda.com/", description: "Discovery & Feed", category: "Build", icon: "🐼" },
     { id: 'bd2', name: "Vibecode", url: "https://www.vibecodeapp.com/workspace", description: "Vibecode Workspace", category: "Build", icon: "💻" },
     { id: 'bd3', name: "Mocha", url: "https://getmocha.com/", description: "No-Code App Builder", category: "Build", icon: "☕" },
@@ -125,7 +131,8 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'd7', name: "Open Alternative", url: "https://openalternative.co/", description: "OSS Alternatives", category: "Dev Tools", icon: "📂" },
     { id: 'd8', name: "Prompt Cheatsheet", url: "https://docs.google.com/document/d/1hpRTSTLsXr471q7I_YK54", description: "Dan Martell's Guide", category: "Dev Tools", icon: "📄" },
     { id: 'd9', name: "Voice AI Easy", url: "https://www.skool.com/aa-academy/classroom/459c05de", description: "Skool Classroom", category: "Dev Tools", icon: "🎙️" },
-    { id: 'd10', name: "PostHog", url: "https://posthog.com/", description: "All-in-one Data Platform", category: "Dev Tools", icon: "🦔", logoUrl: POSTHOG_LOGO }
+    { id: 'd10', name: "PostHog", url: "https://posthog.com/", description: "All-in-one Data Platform", category: "Dev Tools", icon: "🦔", logoUrl: POSTHOG_LOGO },
+    { id: 'd11', name: "Anime.js", url: "https://animejs.com/", description: "Lightweight JavaScript animation library", category: "Dev Tools", icon: "🎞️", logoUrl: ANIMEJS_LOGO }
   ],
   "Libraries": [
     { id: 'l1', name: "The Rundown", url: "https://www.rundown.ai/tools", description: "AI Tools Directory", category: "Libraries", icon: "📋" },
