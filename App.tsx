@@ -7,7 +7,7 @@ import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
 import { Search, Settings } from 'lucide-react';
 import { AITool } from './types';
 
-const STORAGE_KEY = 'ai_mastery_data_v2';
+const STORAGE_KEY = 'ai_mastery_data_v3';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
