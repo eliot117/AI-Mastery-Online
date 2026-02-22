@@ -7,7 +7,7 @@ import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
 import { Search, Settings } from 'lucide-react';
 import { AITool } from './types';
 
-const STORAGE_KEY = 'ai_mastery_data_v1';
+const STORAGE_KEY = 'ai_mastery_data_v2';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,13 +15,13 @@ const App: React.FC = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : INITIAL_DATA;
   });
-  
+
   const folderNames = useMemo(() => Object.keys(folders), [folders]);
   const [activeFolder, setActiveFolder] = useState<string>(folderNames[0] || "Agents");
   const [orbitRadius, setOrbitRadius] = useState(400);
   const [navigatingTo, setNavigatingTo] = useState<AITool | null>(null);
   const [isManageOpen, setIsManageOpen] = useState(false);
-  
+
   const globalRotation = useMotionValue(0);
 
   useEffect(() => {
@@ -56,8 +56,8 @@ const App: React.FC = () => {
       return [...(folders[activeFolder] || [])];
     } else {
       // Filter across all folders when searching
-      tools = (Object.values(folders).flat() as AITool[]).filter(tool => 
-        tool.name.toLowerCase().includes(query) || 
+      tools = (Object.values(folders).flat() as AITool[]).filter(tool =>
+        tool.name.toLowerCase().includes(query) ||
         tool.description.toLowerCase().includes(query)
       );
       // Alphabetical sort ONLY during search for clarity
@@ -93,20 +93,20 @@ const App: React.FC = () => {
     <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <Starfield />
-        <motion.div 
+        <motion.div
           animate={{ opacity: [0.03, 0.08, 0.03] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 -left-1/4 w-3/4 h-3/4 bg-purple-600/10 blur-[240px] rounded-full" 
+          className="absolute top-1/4 -left-1/4 w-3/4 h-3/4 bg-purple-600/10 blur-[240px] rounded-full"
         />
-        <motion.div 
+        <motion.div
           animate={{ opacity: [0.03, 0.08, 0.03] }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-1/4 -right-1/4 w-3/4 h-3/4 bg-blue-600/10 blur-[240px] rounded-full" 
+          className="absolute bottom-1/4 -right-1/4 w-3/4 h-3/4 bg-blue-600/10 blur-[240px] rounded-full"
         />
       </div>
 
       <div className="relative z-50 flex flex-col items-center w-full max-w-lg px-8">
-        <motion.h1 
+        <motion.h1
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="flex flex-col items-center mb-10 text-center pointer-events-none"
@@ -119,24 +119,24 @@ const App: React.FC = () => {
           </span>
         </motion.h1>
 
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
           className="w-full relative group"
         >
           <div className="absolute inset-0 bg-purple-500/5 blur-[100px] group-focus-within:bg-purple-500/20 transition-all rounded-full" />
-          
+
           <div className="relative flex items-center bg-white/5 backdrop-blur-[60px] rounded-full border border-white/10 p-1 pl-6 shadow-[0_20px_60px_rgba(0,0,0,0.7)] focus-within:border-purple-500/50 transition-all">
             <Search className="text-purple-400 opacity-60" size={18} strokeWidth={1.5} />
-            <input 
-              type="text" 
-              placeholder="Search cosmic intelligence..." 
+            <input
+              type="text"
+              placeholder="Search cosmic intelligence..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-transparent border-none py-3 px-4 text-white focus:outline-none placeholder:text-gray-700 tracking-[0.05em] text-base font-light font-tech"
             />
-            <button 
+            <button
               onClick={() => setIsManageOpen(true)}
               className="mr-1 px-4 py-2 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-full hover:shadow-[0_0_20px_rgba(139,92,246,0.6)] transition-all flex items-center gap-2 group/btn"
             >
@@ -146,7 +146,7 @@ const App: React.FC = () => {
           </div>
         </motion.div>
 
-        <motion.nav 
+        <motion.nav
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6 }}
@@ -162,7 +162,7 @@ const App: React.FC = () => {
               className={`
                 px-4 py-1.5 rounded-full text-[9px] font-tech font-bold uppercase tracking-[0.3em] transition-all border backdrop-blur-md
                 ${activeFolder === folderName && !searchQuery
-                  ? 'bg-white/10 border-purple-500/60 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]' 
+                  ? 'bg-white/10 border-purple-500/60 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]'
                   : 'bg-white/5 border-white/5 text-gray-500 hover:text-white hover:border-white/20'}
               `}
             >
@@ -174,13 +174,13 @@ const App: React.FC = () => {
 
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-10">
-          <ellipse 
-            cx="50%" cy="50%" 
-            rx={orbitRadius} 
-            ry={orbitRadius * 0.75} 
-            fill="none" 
-            stroke="white" 
-            strokeWidth="1" 
+          <ellipse
+            cx="50%" cy="50%"
+            rx={orbitRadius}
+            ry={orbitRadius * 0.75}
+            fill="none"
+            stroke="white"
+            strokeWidth="1"
             strokeDasharray="4 8"
           />
         </svg>
@@ -197,11 +197,11 @@ const App: React.FC = () => {
         >
           <AnimatePresence mode="popLayout">
             {currentApps.map((tool, idx) => (
-              <GalaxyEntity 
-                key={tool.id} 
-                tool={tool} 
-                index={idx} 
-                total={currentApps.length} 
+              <GalaxyEntity
+                key={tool.id}
+                tool={tool}
+                index={idx}
+                total={currentApps.length}
                 radius={orbitRadius}
                 searchQuery={searchQuery}
                 globalRotation={globalRotation}
@@ -212,9 +212,9 @@ const App: React.FC = () => {
         </motion.div>
       </div>
 
-      <ManageOverlay 
-        isOpen={isManageOpen} 
-        onClose={() => setIsManageOpen(false)} 
+      <ManageOverlay
+        isOpen={isManageOpen}
+        onClose={() => setIsManageOpen(false)}
         folders={folders}
         onUpdateFolders={setFolders}
         onReorderTools={handleReorder}
@@ -230,15 +230,15 @@ const App: React.FC = () => {
           >
             <motion.div
               initial={{ scale: 0.1, opacity: 1, filter: 'brightness(1) blur(0px)' }}
-              animate={{ 
-                scale: 15, 
+              animate={{
+                scale: 15,
                 opacity: [1, 1, 0],
-                filter: ['brightness(1) blur(0px)', 'brightness(3) blur(10px)', 'brightness(10) blur(40px)'] 
+                filter: ['brightness(1) blur(0px)', 'brightness(3) blur(10px)', 'brightness(10) blur(40px)']
               }}
               transition={{ duration: 0.8, ease: "easeIn" }}
               className="relative w-40 h-40 flex items-center justify-center"
             >
-              <img 
+              <img
                 src={navigatingTo.logoUrl || `https://www.google.com/s2/favicons?sz=128&domain=${new URL(navigatingTo.url).hostname}`}
                 alt=""
                 className="w-full h-full object-contain"
@@ -252,7 +252,8 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
