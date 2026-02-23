@@ -3,13 +3,20 @@ import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
 import { GALAXY_FOLDERS as INITIAL_DATA } from './data';
 import { ManageOverlay } from './components/ManageOverlay';
+import { Auth } from './components/Auth';
+import { supabase } from './utils/supabaseClient';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { Search, Settings } from 'lucide-react';
+import { Search, Settings, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
 import { AITool } from './types';
+import { User } from '@supabase/supabase-js';
 
 const STORAGE_KEY = 'ai_mastery_data_v3';
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [folders, setFolders] = useState<Record<string, AITool[]>>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -23,6 +30,40 @@ const App: React.FC = () => {
   const [isManageOpen, setIsManageOpen] = useState(false);
 
   const globalRotation = useMotionValue(0);
+
+  useEffect(() => {
+    const fetchProfile = async (userId: string) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data) {
+        setProfile(data);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser.id);
+        setShowAuth(false);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(folders));
@@ -89,6 +130,37 @@ const App: React.FC = () => {
     setFolders(prev => ({ ...prev, [folderName]: newTools }));
   };
 
+  if (loading) {
+    return (
+      <div className="w-screen h-screen bg-black flex items-center justify-center">
+        <Loader2 className="animate-spin text-purple-500" size={48} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
+        <Starfield />
+        <div className="relative z-50 flex flex-col items-center">
+          <motion.h1
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="flex flex-col items-center mb-10 text-center pointer-events-none"
+          >
+            <span className="text-7xl md:text-8xl font-tech font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow leading-[0.85]">
+              AI
+            </span>
+            <span className="text-3xl md:text-4xl font-tech font-bold tracking-[0.4em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow opacity-90 mt-2 mr-[-0.4em]">
+              MASTERY
+            </span>
+          </motion.h1>
+          <Auth onAuthComplete={() => { }} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -143,6 +215,25 @@ const App: React.FC = () => {
               <Settings size={18} className="text-white group-hover/btn:rotate-90 transition-transform duration-500" />
               <span className="text-[10px] font-tech font-bold tracking-widest uppercase text-white hidden md:block">Manage</span>
             </button>
+
+            {user ? (
+              <button
+                onClick={() => supabase.auth.signOut()}
+                className="mr-1 px-4 py-2 bg-white/10 rounded-full hover:bg-white/20 transition-all flex items-center gap-2 group/btn"
+                title={user.email}
+              >
+                <LogOut size={18} className="text-white" />
+                <span className="text-[10px] font-tech font-bold tracking-widest uppercase text-white hidden md:block">Sign Out</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuth(true)}
+                className="mr-1 px-4 py-2 bg-gradient-to-tr from-blue-600 to-cyan-600 rounded-full hover:shadow-[0_0_20px_rgba(37,99,235,0.6)] transition-all flex items-center gap-2 group/btn"
+              >
+                <UserIcon size={18} className="text-white" />
+                <span className="text-[10px] font-tech font-bold tracking-widest uppercase text-white hidden md:block">Sign In</span>
+              </button>
+            )}
           </div>
         </motion.div>
 
@@ -221,6 +312,19 @@ const App: React.FC = () => {
       />
 
       <AnimatePresence>
+        {showAuth && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAuth(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <Auth onAuthComplete={() => setShowAuth(false)} />
+          </div>
+        )}
+
         {navigatingTo && (
           <motion.div
             initial={{ opacity: 0 }}
