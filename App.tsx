@@ -143,18 +143,7 @@ const App: React.FC = () => {
       <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
         <Starfield />
         <div className="relative z-50 flex flex-col items-center">
-          <motion.h1
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="flex flex-col items-center mb-10 text-center pointer-events-none"
-          >
-            <span className="text-7xl md:text-8xl font-tech font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow leading-[0.85]">
-              AI
-            </span>
-            <span className="text-3xl md:text-4xl font-tech font-bold tracking-[0.4em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-[length:200%_auto] animate-gradient text-glow opacity-90 mt-2 mr-[-0.4em]">
-              MASTERY
-            </span>
-          </motion.h1>
+
           <Auth onAuthComplete={() => { }} />
         </div>
       </div>
@@ -199,14 +188,14 @@ const App: React.FC = () => {
         >
           <div className="absolute inset-0 bg-purple-500/5 blur-[100px] group-focus-within:bg-purple-500/20 transition-all rounded-full" />
 
-          <div className="relative flex items-center bg-white/5 backdrop-blur-[60px] rounded-full border border-white/10 p-1 pl-6 shadow-[0_20px_60px_rgba(0,0,0,0.7)] focus-within:border-purple-500/50 transition-all">
-            <Search className="text-purple-400 opacity-60" size={18} strokeWidth={1.5} />
+          <div className="relative flex items-center bg-white/5 backdrop-blur-[60px] rounded-full border border-white/10 p-1 shadow-[0_20px_60px_rgba(0,0,0,0.7)] focus-within:border-purple-500/50 transition-all">
+            <Search className="absolute left-6 text-purple-400 opacity-60 pointer-events-none" size={24} strokeWidth={1.5} />
             <input
               type="text"
-              placeholder="Search cosmic intelligence..."
+              placeholder="Search the galaxy..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent border-none py-3 px-4 text-white focus:outline-none placeholder:text-gray-700 tracking-[0.05em] text-base font-light font-tech"
+              className="w-full bg-transparent border-none py-3 pl-16 pr-4 text-white focus:outline-none placeholder:text-gray-700 tracking-[0.05em] text-base font-light font-tech"
             />
             <button
               onClick={() => setIsManageOpen(true)}
@@ -215,25 +204,6 @@ const App: React.FC = () => {
               <Settings size={18} className="text-white group-hover/btn:rotate-90 transition-transform duration-500" />
               <span className="text-[10px] font-tech font-bold tracking-widest uppercase text-white hidden md:block">Manage</span>
             </button>
-
-            {user ? (
-              <button
-                onClick={() => supabase.auth.signOut()}
-                className="mr-1 px-4 py-2 bg-white/10 rounded-full hover:bg-white/20 transition-all flex items-center gap-2 group/btn"
-                title={user.email}
-              >
-                <LogOut size={18} className="text-white" />
-                <span className="text-[10px] font-tech font-bold tracking-widest uppercase text-white hidden md:block">Sign Out</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuth(true)}
-                className="mr-1 px-4 py-2 bg-gradient-to-tr from-blue-600 to-cyan-600 rounded-full hover:shadow-[0_0_20px_rgba(37,99,235,0.6)] transition-all flex items-center gap-2 group/btn"
-              >
-                <UserIcon size={18} className="text-white" />
-                <span className="text-[10px] font-tech font-bold tracking-widest uppercase text-white hidden md:block">Sign In</span>
-              </button>
-            )}
           </div>
         </motion.div>
 
@@ -309,6 +279,7 @@ const App: React.FC = () => {
         folders={folders}
         onUpdateFolders={setFolders}
         onReorderTools={handleReorder}
+        onSignOut={() => supabase.auth.signOut()}
       />
 
       <AnimatePresence>

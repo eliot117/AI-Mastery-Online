@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { X, Plus, Trash2, Edit2, FolderPlus, LayoutGrid, List, Upload, GripVertical, Check } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, FolderPlus, LayoutGrid, List, Upload, GripVertical, Check, LogOut } from 'lucide-react';
 import { AITool } from '../types';
 
 /**
@@ -14,14 +14,16 @@ interface ManageOverlayProps {
   folders: Record<string, AITool[]>;
   onUpdateFolders: React.Dispatch<React.SetStateAction<Record<string, AITool[]>>>;
   onReorderTools: (folderName: string, newTools: AITool[]) => void;
+  onSignOut: () => void;
 }
 
-export const ManageOverlay: React.FC<ManageOverlayProps> = ({ 
-  isOpen, 
-  onClose, 
-  folders, 
-  onUpdateFolders, 
-  onReorderTools
+export const ManageOverlay: React.FC<ManageOverlayProps> = ({
+  isOpen,
+  onClose,
+  folders,
+  onUpdateFolders,
+  onReorderTools,
+  onSignOut
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'folders'>('apps');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -38,7 +40,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   const [newAppFolder, setNewAppFolder] = useState(Object.keys(folders)[0] || '');
 
   const [newFolderName, setNewFolderName] = useState('');
-  
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -189,19 +191,25 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
           >
             {/* Header: Title-free structure with Symmetrical Navigation */}
             <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 items-center border-b border-white/5">
-              <div className="flex items-center min-w-0 pr-12">
-                {/* Title-free aesthetic header block */}
+              <div className="flex items-center min-w-0">
+                <button
+                  onClick={onSignOut}
+                  className="flex items-center gap-2 px-6 h-11 bg-white/5 hover:bg-white/10 border border-white/5 rounded-[24px] font-sans text-[10px] font-bold tracking-widest uppercase transition-all text-gray-400 hover:text-white"
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
               </div>
 
               <div className="flex justify-center order-3 md:order-2">
                 <nav className="flex items-center bg-white/5 rounded-[24px] p-1 relative overflow-hidden w-[280px] h-11">
-                  <button 
+                  <button
                     onClick={() => switchTab('apps')}
                     className={`relative z-10 w-1/2 h-full rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold flex items-center justify-center ${activeTab === 'apps' ? 'text-white' : 'text-gray-500 hover:text-white'}`}
                   >
                     Applications
                   </button>
-                  <button 
+                  <button
                     onClick={() => switchTab('folders')}
                     className={`relative z-10 w-1/2 h-full rounded-[20px] font-sans text-[10px] tracking-widest uppercase transition-all font-bold flex items-center justify-center ${activeTab === 'folders' ? 'text-white' : 'text-gray-500 hover:text-white'}`}
                   >
@@ -221,14 +229,14 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
               <div className="flex justify-end items-center gap-4 order-2 md:order-3">
                 <div className="flex items-center gap-1 bg-white/5 rounded-[24px] p-1 px-2">
-                   <button 
+                  <button
                     onClick={() => switchViewMode('grid')}
                     className={`p-1.5 rounded-[16px] transition-all flex items-center gap-2 px-4 ${viewMode === 'grid' && activeTab === 'apps' ? 'bg-white/10 text-white' : 'text-gray-600 hover:text-white'}`}
                   >
                     <LayoutGrid size={14} />
                     <span className="text-[9px] font-sans font-bold uppercase tracking-widest">GRID</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => switchViewMode('list')}
                     className={`p-1.5 rounded-[16px] transition-all flex items-center gap-2 px-4 ${viewMode === 'list' && activeTab === 'apps' ? 'bg-white/10 text-white' : 'text-gray-600 hover:text-white'}`}
                   >
@@ -236,8 +244,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                     <span className="text-[9px] font-sans font-bold uppercase tracking-widest">LIST</span>
                   </button>
                 </div>
-                
-                <button 
+
+                <button
                   onClick={onClose}
                   className="p-3 bg-white/5 hover:bg-white/10 rounded-[24px] transition-all text-gray-400 hover:text-white"
                 >
@@ -271,25 +279,25 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                           </h3>
                           <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="flex flex-col md:flex-row gap-2 items-center w-full">
                             <div className="flex-1 w-full">
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 placeholder="Name"
                                 className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
                                 value={editingApp ? editingApp.name : newAppName}
-                                onChange={(e) => editingApp ? setEditingApp({...editingApp, name: e.target.value}) : setNewAppName(e.target.value)}
+                                onChange={(e) => editingApp ? setEditingApp({ ...editingApp, name: e.target.value }) : setNewAppName(e.target.value)}
                               />
                             </div>
                             <div className="flex-1 w-full">
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 placeholder="URL"
                                 className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
                                 value={editingApp ? editingApp.url : newAppUrl}
-                                onChange={(e) => editingApp ? setEditingApp({...editingApp, url: e.target.value}) : setNewAppUrl(e.target.value)}
+                                onChange={(e) => editingApp ? setEditingApp({ ...editingApp, url: e.target.value }) : setNewAppUrl(e.target.value)}
                               />
                             </div>
                             <div className="flex-1 w-full flex gap-2">
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
                                 className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold text-gray-400 hover:text-white transition-all h-11"
@@ -298,23 +306,23 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                 {(editingApp?.logoUrl || newAppLogo) ? 'Logo Set' : 'Logo'}
                               </button>
                               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                              <select 
+                              <select
                                 className="w-2/5 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold appearance-none focus:outline-none focus:border-purple-500/50 transition-all text-white cursor-pointer h-11 text-center"
                                 value={editingApp ? editingApp.category : newAppFolder}
-                                onChange={(e) => editingApp ? setEditingApp({...editingApp, category: e.target.value}) : setNewAppFolder(e.target.value)}
+                                onChange={(e) => editingApp ? setEditingApp({ ...editingApp, category: e.target.value }) : setNewAppFolder(e.target.value)}
                               >
                                 {Object.keys(folders).map(f => <option key={f} value={f} className="bg-[#0f172a]">{f}</option>)}
                               </select>
                             </div>
                             <div className="flex gap-2 items-center justify-end">
-                              <button 
+                              <button
                                 type="submit"
                                 className={actionButtonClass}
                               >
                                 {editingApp ? 'SAVE' : 'ADD'}
                               </button>
                               {(editingApp || newAppLogo) && (
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => editingApp ? setEditingApp(null) : setNewAppLogo(null)}
                                   className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white h-11 flex items-center justify-center"
@@ -331,21 +339,21 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                         {(Object.entries(folders) as [string, AITool[]][]).map(([folderName, tools]) => (
                           <div key={folderName} className="space-y-6">
                             <div className="flex flex-col items-center gap-4 px-2">
-                               <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter leading-none text-center">{folderName}</h3>
-                               <div className="h-[1px] w-1/4 bg-white/10" />
-                               <span className="text-4xl font-sans font-black text-purple-600/40 leading-none">{tools.length}</span>
+                              <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter leading-none text-center">{folderName}</h3>
+                              <div className="h-[1px] w-1/4 bg-white/10" />
+                              <span className="text-4xl font-sans font-black text-purple-600/40 leading-none">{tools.length}</span>
                             </div>
-                            
+
                             {viewMode === 'grid' ? (
-                              <Reorder.Group 
-                                axis="y" 
-                                values={tools} 
+                              <Reorder.Group
+                                axis="y"
+                                values={tools}
                                 onReorder={(newOrder) => onReorderTools(folderName, newOrder)}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
                               >
                                 {tools.map(tool => (
-                                  <Reorder.Item 
-                                    key={tool.id} 
+                                  <Reorder.Item
+                                    key={tool.id}
                                     value={tool}
                                     className="group flex items-center justify-between p-5 bg-white/5 rounded-[24px] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.07]"
                                   >
@@ -366,8 +374,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                       </div>
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => setEditingApp(tool)} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-blue-400 transition-all"><Edit2 size={16}/></button>
-                                      <button onClick={() => setConfirmDelete({type: 'app', id: tool.id})} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-400 transition-all"><Trash2 size={16}/></button>
+                                      <button onClick={() => setEditingApp(tool)} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-blue-400 transition-all"><Edit2 size={16} /></button>
+                                      <button onClick={() => setConfirmDelete({ type: 'app', id: tool.id })} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-400 transition-all"><Trash2 size={16} /></button>
                                     </div>
                                   </Reorder.Item>
                                 ))}
@@ -392,14 +400,14 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                           <FolderPlus size={14} /> NEW SECTOR
                         </h3>
                         <form onSubmit={handleAddFolder} className="flex gap-2 items-center">
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             placeholder="Sector Identity"
                             className="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
                             value={newFolderName}
                             onChange={(e) => setNewFolderName(e.target.value)}
                           />
-                          <button 
+                          <button
                             type="submit"
                             className={actionButtonClass}
                           >
@@ -409,46 +417,46 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                       </section>
 
                       <div className="space-y-6">
-                         <h3 className="text-[10px] font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">ORBITAL SECTORS</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {(Object.entries(folders) as [string, AITool[]][]).map(([name, tools]) => (
-                               <div key={name} className="group p-8 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between min-h-[160px]">
-                                  <div className="flex items-start justify-between">
-                                     <div className="flex items-center gap-3">
-                                        <GripVertical size={16} className="text-gray-700 group-hover:text-gray-500" />
-                                        {editingFolder === name ? (
-                                           <input 
-                                              autoFocus
-                                              defaultValue={name}
-                                              onBlur={(e) => handleRenameFolder(name, e.target.value)}
-                                              onKeyDown={(e) => e.key === 'Enter' && handleRenameFolder(name, e.currentTarget.value)}
-                                              className="bg-transparent border-b border-purple-500 focus:outline-none text-white font-sans font-black text-xl uppercase tracking-widest w-full mr-4 rounded-[24px] px-2"
-                                           />
-                                        ) : (
-                                           <h4 className="text-xl font-sans font-black text-white tracking-widest uppercase truncate leading-none">{name}</h4>
-                                        )}
-                                     </div>
-                                     <div className="flex gap-1">
-                                        <button onClick={() => setEditingFolder(name)} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-white transition-all"><Edit2 size={16}/></button>
-                                        <button onClick={() => setConfirmDelete({type: 'folder', id: name})} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-500 transition-all"><Trash2 size={16}/></button>
-                                     </div>
-                                  </div>
-                                  <div className="flex items-center justify-between mt-8">
-                                     <div className="flex -space-x-3">
-                                        {tools.slice(0, 5).map(t => (
-                                           <div key={t.id} className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black">
-                                              {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain" /> : <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>}
-                                           </div>
-                                        ))}
-                                     </div>
-                                     <div className="flex flex-col items-end">
-                                        <span className="text-3xl font-sans font-black text-white leading-none">{tools.length}</span>
-                                        <span className="text-[9px] font-sans font-bold text-purple-500/60 uppercase tracking-widest">TOOLS</span>
-                                     </div>
-                                  </div>
-                               </div>
-                            ))}
-                         </div>
+                        <h3 className="text-[10px] font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">ORBITAL SECTORS</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {(Object.entries(folders) as [string, AITool[]][]).map(([name, tools]) => (
+                            <div key={name} className="group p-8 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between min-h-[160px]">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <GripVertical size={16} className="text-gray-700 group-hover:text-gray-500" />
+                                  {editingFolder === name ? (
+                                    <input
+                                      autoFocus
+                                      defaultValue={name}
+                                      onBlur={(e) => handleRenameFolder(name, e.target.value)}
+                                      onKeyDown={(e) => e.key === 'Enter' && handleRenameFolder(name, e.currentTarget.value)}
+                                      className="bg-transparent border-b border-purple-500 focus:outline-none text-white font-sans font-black text-xl uppercase tracking-widest w-full mr-4 rounded-[24px] px-2"
+                                    />
+                                  ) : (
+                                    <h4 className="text-xl font-sans font-black text-white tracking-widest uppercase truncate leading-none">{name}</h4>
+                                  )}
+                                </div>
+                                <div className="flex gap-1">
+                                  <button onClick={() => setEditingFolder(name)} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-white transition-all"><Edit2 size={16} /></button>
+                                  <button onClick={() => setConfirmDelete({ type: 'folder', id: name })} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between mt-8">
+                                <div className="flex -space-x-3">
+                                  {tools.slice(0, 5).map(t => (
+                                    <div key={t.id} className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black">
+                                      {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain" /> : <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <span className="text-3xl font-sans font-black text-white leading-none">{tools.length}</span>
+                                  <span className="text-[9px] font-sans font-bold text-purple-500/60 uppercase tracking-widest">TOOLS</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -458,13 +466,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
             <AnimatePresence>
               {confirmDelete && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   className="absolute inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[110]"
                 >
-                  <motion.div 
+                  <motion.div
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     className="bg-[#0f172a] p-10 rounded-[32px] border border-white/10 max-w-sm text-center shadow-2xl"
@@ -473,13 +481,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                     <h3 className="text-xl font-sans font-black uppercase tracking-tight mb-2">PURGE SEQUENCE?</h3>
                     <p className="text-sm text-gray-400 font-sans font-bold mb-8 leading-relaxed">REMOVE {confirmDelete.type.toUpperCase()} FROM SYSTEM PERMANENTLY?</p>
                     <div className="flex gap-4">
-                      <button 
+                      <button
                         onClick={() => setConfirmDelete(null)}
                         className="flex-1 px-6 py-4 rounded-[24px] bg-white/5 hover:bg-white/10 font-sans font-black text-[10px] tracking-widest uppercase transition-all text-white"
                       >
                         ABORT
                       </button>
-                      <button 
+                      <button
                         onClick={() => confirmDelete.type === 'app' ? handleDeleteApp(confirmDelete.id) : handleDeleteFolder(confirmDelete.id)}
                         className="flex-1 px-6 py-4 rounded-[24px] bg-red-600 hover:bg-red-500 font-sans font-black text-[10px] tracking-widest uppercase transition-all shadow-lg shadow-red-600/20 text-white"
                       >

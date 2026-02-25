@@ -34,7 +34,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, isHero = false, search
     <>
       <motion.div
         layout
-        animate={{ 
+        animate={{
           x: driftX,
           y: driftY,
           opacity: isMatch ? 1 : 0.15,
@@ -46,7 +46,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, isHero = false, search
           opacity: { duration: 0.5 },
           scale: { duration: 0.5 }
         }}
-        whileHover={{ 
+        whileHover={{
           scale: 1.15,
           z: 50,
           boxShadow: "0 0 40px rgba(139, 92, 246, 0.4)",
@@ -56,16 +56,16 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, isHero = false, search
         className={`relative group cursor-pointer ${isMatch && searchQuery ? 'search-pulse' : ''} ${isHero ? 'w-48 h-48' : 'w-36 h-36'}`}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-3xl blur-xl group-hover:opacity-100 opacity-0 transition-opacity" />
-        
+
         <div className="glass-card glow-border h-full w-full rounded-3xl border border-white/10 p-4 flex flex-col items-center justify-center text-center">
-          <motion.span 
+          <motion.span
             className={`${isHero ? 'text-5xl' : 'text-3xl'} mb-2`}
             animate={{ rotate: [0, 5, -5, 0] }}
             transition={{ duration: 5, repeat: Infinity }}
           >
             {tool.icon}
           </motion.span>
-          
+
           <div className="w-full flex items-center justify-center min-h-[2.4em]">
             <h3 className="font-tech font-bold text-white/95 text-[10px] uppercase tracking-[0.1em] text-center whitespace-normal [word-break:keep-all] line-clamp-2 leading-tight drop-shadow-sm">
               {tool.name}
@@ -89,7 +89,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, isHero = false, search
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
             {/* Warp effect */}
-            <motion.div 
+            <motion.div
               initial={{ scale: 0, opacity: 1 }}
               animate={{ scale: 50, opacity: 0 }}
               transition={{ duration: 0.8, ease: "easeIn" }}
