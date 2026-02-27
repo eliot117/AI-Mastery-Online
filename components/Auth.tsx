@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { supabase } from '../utils/supabaseClient';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { initializeApp } from 'firebase/app';
+
+// Re-initialize for simplicity or use global if available
+const firebaseConfig = (window as any).__firebase_config || {};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
 export const Auth: React.FC<{ onAuthComplete: () => void }> = ({ onAuthComplete }) => {
     const [loading, setLoading] = useState(false);
@@ -15,21 +21,11 @@ export const Auth: React.FC<{ onAuthComplete: () => void }> = ({ onAuthComplete 
 
         try {
             if (isSignUp) {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        emailRedirectTo: window.location.origin
-                    }
-                });
-                if (error) throw error;
-                alert('Check your email for the confirmation link!');
+                await createUserWithEmailAndPassword(auth, email, password);
+                alert('Account created! You are now signed in.');
+                onAuthComplete();
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
+                await signInWithEmailAndPassword(auth, email, password);
                 onAuthComplete();
             }
         } catch (err: any) {
@@ -43,13 +39,9 @@ export const Auth: React.FC<{ onAuthComplete: () => void }> = ({ onAuthComplete 
         setLoading(true);
         setError(null);
         try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin
-                }
-            });
-            if (error) throw error;
+            const provider = new GoogleAuthProvider();
+            await signInWithPopup(auth, provider);
+            onAuthComplete();
         } catch (err: any) {
             setError(err.message);
         } finally {
