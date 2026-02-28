@@ -15,8 +15,11 @@ interface GalaxyEntityProps {
 
 export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, radius, searchQuery, globalRotation, onLaunch }) => {
     const baseAngle = (index / total) * Math.PI * 2;
+
+    // HEIGHT STRETCHED: Vertical multiplier 0.75 for vertical stretch
     const radiusY = radius * 0.75;
 
+    // Dynamically calculate X and Y based on global rotation to follow the elliptical path
     const x = useTransform(globalRotation, (rot) => {
         const angle = baseAngle + (rot * Math.PI / 180);
         return Math.cos(angle) * radius;
@@ -27,22 +30,13 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
         return Math.sin(angle) * radiusY;
     });
 
-    // Surgical Fix: Safe Domain extraction and Fallbacks
-    let domain = '';
-    try {
-        domain = tool.url ? new URL(tool.url).hostname : '';
-    } catch (e) {
-        domain = '';
-    }
-
-    // Logic Rendering Fallbacks: {app.url || '#'} and {app.icon || '🔗'}
-    const safeUrl = tool.url || '#';
-    const safeIcon = tool.icon || '🔗';
-    const logoUrl = tool.logoUrl || (domain ? `https://www.google.com/s2/favicons?sz=128&domain=${domain}` : '');
+    // Domain extraction for high-res logo fetching
+    const domain = new URL(tool.url).hostname;
+    const logoUrl = tool.logoUrl || `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
 
     const isMatch = !searchQuery ||
-        (tool.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (tool.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+        tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tool.description.toLowerCase().includes(searchQuery.toLowerCase());
 
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -80,7 +74,7 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
                     className="relative group pointer-events-auto"
                 >
                     <motion.a
-                        href={safeUrl}
+                        href={tool.url}
                         onClick={handleClick}
                         whileHover={{ scale: 1.12, rotate: 2 }}
                         whileTap={{ scale: 0.95 }}
@@ -91,27 +85,27 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({ tool, index, total, 
               cursor-pointer
             `}
                     >
+                        {/* Smoked glass atmospheric depth */}
                         <div className="absolute inset-0 bg-white/5 opacity-20 group-hover:opacity-40 transition-opacity rounded-3xl" />
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-blue-500/10 blur-3xl rounded-full" />
 
+                        {/* Squircle Icon Container */}
                         <div className={`relative z-10 w-18 h-18 md:w-20 md:h-20 mb-3 flex items-center justify-center overflow-hidden rounded-xl`}>
-                            {logoUrl ? (
-                                <img
-                                    src={logoUrl}
-                                    alt={tool.name}
-                                    className="w-full h-full object-contain filter drop-shadow-2xl bg-transparent"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22none%22/><text x=%2250%%22 y=%2250%%22 dy=%22.35em%22 text-anchor=%22middle%22 font-family=%22Orbitron, sans-serif%22 font-weight=%22bold%22 font-size=%2260%22 fill=%22white%22>${(tool.name || 'A').charAt(0)}</text></svg>`;
-                                    }}
-                                />
-                            ) : (
-                                <span className="text-4xl text-white/40 font-tech font-bold">{safeIcon}</span>
-                            )}
+                            <img
+                                src={logoUrl}
+                                alt={tool.name}
+                                className="w-full h-full object-contain filter drop-shadow-2xl bg-transparent"
+                                onError={(e) => {
+                                    // Fallback to high-tech character monogram, never emojis
+                                    (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22none%22/><text x=%2250%%22 y=%2250%%22 dy=%22.35em%22 text-anchor=%22middle%22 font-family=%22Orbitron, sans-serif%22 font-weight=%22bold%22 font-size=%2260%22 fill=%22white%22>${tool.name.charAt(0)}</text></svg>`;
+                                }}
+                            />
                         </div>
 
+                        {/* App Label - STRICT ISOLATION: 10px, max 2 lines */}
                         <div className="relative z-10 w-full flex items-center justify-center min-h-[2.4em]">
                             <span className="px-2 text-[10px] font-tech font-bold text-white/95 tracking-[0.1em] uppercase text-center whitespace-normal [word-break:keep-all] line-clamp-2 leading-tight drop-shadow-sm">
-                                {tool.name || 'Unnamed App'}
+                                {tool.name}
                             </span>
                         </div>
 

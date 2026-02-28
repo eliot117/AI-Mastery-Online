@@ -1,242 +1,80 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Starfield } from './components/Starfield';
 import { GalaxyEntity } from './components/GalaxyEntity';
+import { GALAXY_FOLDERS as INITIAL_DATA } from './data';
 import { ManageOverlay } from './components/ManageOverlay';
 import { Auth } from './components/Auth';
+import { supabase } from './utils/supabaseClient';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { Search, Settings, Loader2 } from 'lucide-react';
+import { Search, Settings, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
 import { AITool } from './types';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import {
-  getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc,
-  doc, query, where, orderBy, getDocs, serverTimestamp
-} from 'firebase/firestore';
-import {
-  getAuth, signInAnonymously, onAuthStateChanged, signOut as firebaseSignOut,
-  setPersistence, browserLocalPersistence
-} from 'firebase/auth';
-import { KIMI_AI_LOGO } from './data';
+import { User } from '@supabase/supabase-js';
 
-// Global Configs
-const firebaseConfig = (window as any).__firebase_config || {};
-
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// Persistence: Use browserLocalPersistence to stay active on tab switch
-setPersistence(auth, browserLocalPersistence).catch(console.error);
-
-// Public Fallback Assets (Always visible during loading)
-const DEFAULT_APPS: AITool[] = [
-  { id: 'fallback-1', name: 'Zero GPT', url: 'https://www.zerogpt.com/', description: 'AI Detector', category: 'Agents', icon: 'Z' },
-  { id: 'fallback-2', name: 'Kimi AI', url: 'https://www.kimi.com/', description: 'Long-context AI', category: 'Agents', icon: 'K', logoUrl: 'https://statics.moonshot.cn/kimi-chat/logo.png' }
-];
+const STORAGE_KEY = 'ai_mastery_data_v3';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Public Fallback: Initialize with defaults immediately so screen isn't empty
-  const [folders, setFolders] = useState<Record<string, AITool[]>>({
-    "Agents": DEFAULT_APPS
+  const [folders, setFolders] = useState<Record<string, AITool[]>>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : INITIAL_DATA;
   });
 
   const folderNames = useMemo(() => Object.keys(folders), [folders]);
-  const [activeFolder, setActiveFolder] = useState<string>("Agents");
+  const [activeFolder, setActiveFolder] = useState<string>(folderNames[0] || "Agents");
   const [orbitRadius, setOrbitRadius] = useState(400);
   const [navigatingTo, setNavigatingTo] = useState<AITool | null>(null);
   const [isManageOpen, setIsManageOpen] = useState(false);
 
   const globalRotation = useMotionValue(0);
 
-  // Explicit Sync Bridge Fix: Forced global path strictly for apps
-  const getPaths = () => {
-    if (!user?.uid) return null;
-    const rootPath = `artifacts/master-galaxy/users/${user.uid}`;
-    return {
-      userApps: `${rootPath}/apps`,
-      userFolders: `${rootPath}/folders`,
-      publicApps: `artifacts/master-galaxy/public/data/apps`
-    };
-  };
-
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        console.log("ACTIVE_ID:", firebaseUser.uid);
+    const fetchProfile = async (userId: string) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data) {
+        setProfile(data);
       }
-      if (!firebaseUser) {
-        signInAnonymously(auth).catch(console.error);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser.id);
+        setShowAuth(false);
+      } else {
+        setProfile(null);
       }
       setLoading(false);
     });
-    return () => unsubAuth();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-
-    const paths = getPaths();
-    if (!paths) return;
-
-    // Bridge Logic: Explicit logs to confirm shared pathing
-    console.log('ACTIVE_ID:', user.uid);
-    console.log('PATH_USED:', paths.userApps);
-
-    const qPublic = collection(db, paths.publicApps);
-    const qPrivate = collection(db, paths.userApps);
-    // Order by createdAt asc so new folders always append to the bottom
-    const qFolders = query(collection(db, paths.userFolders), orderBy('createdAt', 'asc'));
-
-    let publicAppsData: AITool[] = [];
-    let privateAppsData: AITool[] = [];
-    let foldersData: string[] = [];
-
-    const updateState = () => {
-      const combined: Record<string, AITool[]> = {};
-      foldersData.forEach(name => { combined[name] = []; });
-      if (!combined["Agents"]) combined["Agents"] = [];
-
-      let appsToGroup = [...publicAppsData, ...privateAppsData];
-
-      // Merge with DEFAULT_APPS to ensure they are always visible
-      DEFAULT_APPS.forEach(defaultApp => {
-        if (!appsToGroup.find(a => a.id === defaultApp.id)) {
-          appsToGroup.push(defaultApp);
-        }
-      });
-
-      appsToGroup.forEach(app => {
-        const cat = app.category || "Agents";
-        if (!combined[cat]) combined[cat] = [];
-        if (!combined[cat].find(a => a.id === app.id)) {
-          combined[cat].push(app);
-        }
-      });
-
-      setFolders(combined);
-    };
-
-    const unsubPublic = onSnapshot(qPublic, (snap) => {
-      publicAppsData = snap.docs.map(d => ({ id: d.id, ...d.data() } as AITool));
-      updateState();
-    });
-
-    const unsubPrivate = onSnapshot(qPrivate, (snap) => {
-      privateAppsData = snap.docs.map(d => ({ id: d.id, ...d.data() } as AITool));
-      updateState();
-    });
-
-    const unsubFolders = onSnapshot(qFolders, (snap) => {
-      foldersData = snap.docs.map(d => d.data().name);
-      updateState();
-    });
-
-    return () => {
-      unsubPublic();
-      unsubPrivate();
-      unsubFolders();
-    };
-  }, [user]);
-
-  const currentApps = useMemo(() => {
-    let tools: AITool[] = [];
-    const queryStr = searchQuery.trim().toLowerCase();
-    if (!queryStr) {
-      return [...(folders[activeFolder] || [])];
-    } else {
-      tools = (Object.values(folders).flat() as AITool[]).filter(tool =>
-        (tool.name || '').toLowerCase().includes(queryStr) ||
-        (tool.description || '').toLowerCase().includes(queryStr)
-      );
-      return tools.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    }
-  }, [activeFolder, searchQuery, folders]);
-
-  const handleLaunch = async (tool: AITool) => {
-    const paths = getPaths();
-    if (paths && tool.id && !tool.id.startsWith('fallback-')) {
-      const docRef = doc(db, paths.userApps, tool.id);
-      try {
-        await updateDoc(docRef, { clickCount: (tool.clickCount || 0) + 1, updatedAt: serverTimestamp() });
-      } catch (e) { }
-    }
-    setNavigatingTo(tool);
-    setTimeout(() => {
-      window.location.href = tool.url || '#';
-    }, 700);
-  };
-
-  const handleAddApp = async (appData: Omit<AITool, 'id'>) => {
-    if (!auth.currentUser?.uid) return;
-    if (!appData.name.trim() || !appData.url.trim()) return;
-
-    const paths = getPaths();
-    if (!paths) return;
-
-    await addDoc(collection(db, paths.userApps), {
-      ...appData,
-      userId: auth.currentUser.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-  };
-
-  const handleUpdateApp = async (id: string, appData: Partial<AITool>) => {
-    const paths = getPaths();
-    if (!paths) return;
-    await updateDoc(doc(db, paths.userApps, id), {
-      ...appData,
-      updatedAt: serverTimestamp()
-    });
-  };
-
-  const handleDeleteApp = async (id: string) => {
-    const paths = getPaths();
-    if (!paths) return;
-    await deleteDoc(doc(db, paths.userApps, id));
-  };
-
-  const handleAddFolder = async (name: string) => {
-    if (!auth.currentUser?.uid || !name.trim()) return;
-    const paths = getPaths();
-    if (!paths) return;
-    await addDoc(collection(db, paths.userFolders), {
-      name: name.trim(),
-      userId: auth.currentUser.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-  };
-
-  const handleDeleteFolder = async (name: string) => {
-    const paths = getPaths();
-    if (!paths) return;
-    const snap = await getDocs(query(collection(db, paths.userFolders), where('name', '==', name)));
-    snap.forEach(async (d) => await deleteDoc(doc(db, paths.userFolders, d.id)));
-  };
-
-  const handleRenameFolder = async (oldName: string, newName: string) => {
-    if (!newName.trim()) return;
-    const paths = getPaths();
-    if (!paths) return;
-    const snap = await getDocs(query(collection(db, paths.userFolders), where('name', '==', oldName)));
-    snap.forEach(async (d) => await updateDoc(doc(db, paths.userFolders, d.id), { name: newName.trim(), updatedAt: serverTimestamp() }));
-
-    const snapApps = await getDocs(query(collection(db, paths.userApps), where('category', '==', oldName)));
-    snapApps.forEach(async (d) => await updateDoc(doc(db, paths.userApps, d.id), { category: newName.trim(), updatedAt: serverTimestamp() }));
-  };
-
-  const handleReorder = (folderName: string, newTools: AITool[]) => {
-    setFolders(prev => ({ ...prev, [folderName]: newTools }));
-  };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(folders));
+  }, [folders]);
 
   useEffect(() => {
-    const controls = animate(globalRotation, 360, { duration: 100, repeat: Infinity, ease: "linear" });
+    const controls = animate(globalRotation, 360, {
+      duration: 100,
+      repeat: Infinity,
+      ease: "linear"
+    });
     return () => controls.stop();
   }, [globalRotation]);
 
@@ -250,10 +88,64 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const currentApps = useMemo(() => {
+    let tools: AITool[] = [];
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      // Respect fixed folder ordering when not searching
+      return [...(folders[activeFolder] || [])];
+    } else {
+      // Filter across all folders when searching
+      tools = (Object.values(folders).flat() as AITool[]).filter(tool =>
+        tool.name.toLowerCase().includes(query) ||
+        tool.description.toLowerCase().includes(query)
+      );
+      // Alphabetical sort ONLY during search for clarity
+      return tools.sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }, [activeFolder, searchQuery, folders]);
+
+  const handleLaunch = (tool: AITool) => {
+    setFolders(prev => {
+      const next = { ...prev };
+      for (const cat in next) {
+        const idx = next[cat].findIndex(t => t.id === tool.id);
+        if (idx !== -1) {
+          next[cat] = [...next[cat]];
+          next[cat][idx] = { ...next[cat][idx], clickCount: (next[cat][idx].clickCount || 0) + 1 };
+          break;
+        }
+      }
+      return next;
+    });
+
+    setNavigatingTo(tool);
+    setTimeout(() => {
+      window.location.href = tool.url;
+    }, 700);
+  };
+
+  const handleReorder = (folderName: string, newTools: AITool[]) => {
+    setFolders(prev => ({ ...prev, [folderName]: newTools }));
+  };
+
   if (loading) {
     return (
       <div className="w-screen h-screen bg-black flex items-center justify-center">
         <Loader2 className="animate-spin text-purple-500" size={48} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
+        <Starfield />
+        <div className="relative z-50 flex flex-col items-center">
+
+          <Auth onAuthComplete={() => { }} />
+        </div>
       </div>
     );
   }
@@ -295,6 +187,7 @@ const App: React.FC = () => {
           className="w-full relative group"
         >
           <div className="absolute inset-0 bg-purple-500/5 blur-[100px] group-focus-within:bg-purple-500/20 transition-all rounded-full" />
+
           <div className="relative flex items-center bg-white/5 backdrop-blur-[60px] rounded-full border border-white/10 p-1 shadow-[0_20px_60px_rgba(0,0,0,0.7)] focus-within:border-purple-500/50 transition-all">
             <Search className="absolute left-6 text-purple-400 opacity-60 pointer-events-none" size={24} strokeWidth={1.5} />
             <input
@@ -342,14 +235,25 @@ const App: React.FC = () => {
 
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-10">
-          <ellipse cx="50%" cy="50%" rx={orbitRadius} ry={orbitRadius * 0.75} fill="none" stroke="white" strokeWidth="1" strokeDasharray="4 8" />
+          <ellipse
+            cx="50%" cy="50%"
+            rx={orbitRadius}
+            ry={orbitRadius * 0.75}
+            fill="none"
+            stroke="white"
+            strokeWidth="1"
+            strokeDasharray="4 8"
+          />
         </svg>
 
         <motion.div
           key={activeFolder + (searchQuery ? '_search' : '_browse') + folderNames.length}
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ opacity: { duration: 0.8 }, scale: { duration: 0.8, type: "spring" } }}
+          transition={{
+            opacity: { duration: 0.8 },
+            scale: { duration: 0.8, type: "spring" }
+          }}
           className="relative w-1 h-1 flex items-center justify-center"
         >
           <AnimatePresence mode="popLayout">
@@ -373,14 +277,9 @@ const App: React.FC = () => {
         isOpen={isManageOpen}
         onClose={() => setIsManageOpen(false)}
         folders={folders}
-        onAddApp={handleAddApp}
-        onUpdateApp={handleUpdateApp}
-        onDeleteApp={handleDeleteApp}
-        onAddFolder={handleAddFolder}
-        onDeleteFolder={handleDeleteFolder}
-        onRenameFolder={handleRenameFolder}
+        onUpdateFolders={setFolders}
         onReorderTools={handleReorder}
-        onSignOut={() => setShowAuth(true)}
+        onSignOut={() => supabase.auth.signOut()}
       />
 
       <AnimatePresence>
@@ -415,7 +314,7 @@ const App: React.FC = () => {
               className="relative w-40 h-40 flex items-center justify-center"
             >
               <img
-                src={navigatingTo.logoUrl || (navigatingTo.url ? `https://www.google.com/s2/favicons?sz=128&domain=${new URL(navigatingTo.url).hostname}` : '')}
+                src={navigatingTo.logoUrl || `https://www.google.com/s2/favicons?sz=128&domain=${new URL(navigatingTo.url).hostname}`}
                 alt=""
                 className="w-full h-full object-contain"
                 onError={(e) => {

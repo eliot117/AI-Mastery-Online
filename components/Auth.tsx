@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { initializeApp } from 'firebase/app';
-
-// Re-initialize for simplicity or use global if available
-const firebaseConfig = (window as any).__firebase_config || {};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+import { supabase } from '../utils/supabaseClient';
 
 export const Auth: React.FC<{ onAuthComplete: () => void }> = ({ onAuthComplete }) => {
     const [loading, setLoading] = useState(false);
@@ -21,11 +15,21 @@ export const Auth: React.FC<{ onAuthComplete: () => void }> = ({ onAuthComplete 
 
         try {
             if (isSignUp) {
-                await createUserWithEmailAndPassword(auth, email, password);
-                alert('Account created! You are now signed in.');
-                onAuthComplete();
+                const { error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        emailRedirectTo: window.location.origin
+                    }
+                });
+                if (error) throw error;
+                alert('Check your email for the confirmation link!');
             } else {
-                await signInWithEmailAndPassword(auth, email, password);
+                const { error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+                if (error) throw error;
                 onAuthComplete();
             }
         } catch (err: any) {
@@ -39,9 +43,13 @@ export const Auth: React.FC<{ onAuthComplete: () => void }> = ({ onAuthComplete 
         setLoading(true);
         setError(null);
         try {
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
-            onAuthComplete();
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) throw error;
         } catch (err: any) {
             setError(err.message);
         } finally {
