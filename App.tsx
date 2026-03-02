@@ -28,14 +28,34 @@ declare global {
   const __initial_auth_token: string | undefined;
 }
 
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-// STRICT FALLBACK: Ensure appId is never null
-const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'master-galaxy';
+// EMERGENCY FIREBASE INITIALIZATION SHIELD
+let app: any = null;
+let auth: any = null;
+let db: any = null;
+let appId = 'master-galaxy';
+let initError: any = null;
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export { appId };
+try {
+  const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+  const firebaseConfig = configStr ? JSON.parse(configStr) : null;
+
+  if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } else {
+    throw new Error("Missing Firebase Configuration Source");
+  }
+
+  if (typeof __app_id !== 'undefined' && __app_id) {
+    appId = __app_id;
+  }
+} catch (e) {
+  console.error("VITAL SYSTEM ERROR: Firebase failed to initialize:", e);
+  initError = e;
+}
+
+export { auth, db, appId };
 
 const STORAGE_KEY = 'ai_mastery_data_v3';
 
@@ -58,6 +78,11 @@ const App: React.FC = () => {
   const globalRotation = useMotionValue(0);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     // LAYER 3 PERSISTENCE LOCK: Ensure hardware-level lock before authentication attempts
     const initAuth = async () => {
       try {
@@ -114,7 +139,7 @@ const App: React.FC = () => {
 
   // THE SYNC BRIDGE: strictly gated by [user] dependency
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
 
     // Construction of strict Pathing Bridge
     const userPath = `artifacts/${appId}/users/${user.uid}/dashboard`;
@@ -275,6 +300,26 @@ const App: React.FC = () => {
       }
     }
   };
+
+  // EMERGENCY INITIALIZATION CHECK (SAFE MODE)
+  if (!auth || !db) {
+    return (
+      <div className="w-screen h-screen bg-black flex flex-col items-center justify-center gap-4 text-white font-tech p-10 text-center">
+        <Starfield />
+        <div className="relative z-50 flex flex-col items-center">
+          <div className="text-red-500 text-2xl md:text-3xl font-black tracking-tighter uppercase mb-2 text-glow">
+            SYSTEM INITIALIZATION ERROR
+          </div>
+          <p className="text-gray-400 text-[10px] font-bold tracking-[0.3em] uppercase max-w-sm leading-relaxed opacity-60">
+            The Galaxy is offline. The local environment failed to provide valid Firebase credentials.
+          </p>
+          <div className="mt-8 px-6 py-2 border border-white/10 rounded-full text-[9px] text-gray-500 uppercase tracking-widest bg-white/5 backdrop-blur-md">
+            SAFE MODE ACTIVATED
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // LOAD STATES
   if (loading || (user && isSyncing)) {
