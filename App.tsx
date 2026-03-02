@@ -58,21 +58,13 @@ const App: React.FC = () => {
   const globalRotation = useMotionValue(0);
 
   useEffect(() => {
-    // Hardware-Level Persistence: Ensure session survives restarts
-    setPersistence(auth, browserLocalPersistence).catch(console.error);
-
-    // Auth Listener
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        setIsSyncing(true); // Show local loading until cloud data 'pops'
-      }
-      setLoading(false);
-    });
-
     // Auto-Login Sequence (Strict Persistence Rule)
     const initAuth = async () => {
       try {
+        // Hardware-Level Persistence: Ensure session survives restarts
+        // MUST be awaited before any sign-in or auth state changes
+        await setPersistence(auth, browserLocalPersistence);
+
         const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         if (token) {
           await signInWithCustomToken(auth, token);
@@ -84,6 +76,15 @@ const App: React.FC = () => {
         setLoading(false);
       }
     };
+
+    // Auth Listener
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setIsSyncing(true); // Show local loading until cloud data 'pops'
+      }
+      setLoading(false);
+    });
 
     initAuth();
     return () => unsubscribe();
