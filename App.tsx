@@ -58,30 +58,37 @@ const App: React.FC = () => {
   const globalRotation = useMotionValue(0);
 
   useEffect(() => {
-    // Auto-Login Sequence (Strict Persistence Rule)
+    // LAYER 3 PERSISTENCE LOCK: Ensure hardware-level lock before authentication attempts
     const initAuth = async () => {
       try {
-        // Hardware-Level Persistence: Ensure session survives restarts
-        // MUST be awaited before any sign-in or auth state changes
+        setLoading(true);
+        // MUST await persistence before any sign-in methods
         await setPersistence(auth, browserLocalPersistence);
 
         const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         if (token) {
           await signInWithCustomToken(auth, token);
         } else {
-          await signInAnonymously(auth);
+          // Attempt sign-in only if no current session recovered by persistence
+          if (!auth.currentUser) {
+            await signInAnonymously(auth);
+          }
         }
       } catch (err) {
-        console.error("Auth initialization failed:", err);
+        console.error("Critical Auth Lock Failure:", err);
         setLoading(false);
       }
     };
 
-    // Auth Listener
+    // Auth Listener - Zero-State Protection
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        setIsSyncing(true); // Show local loading until cloud data 'pops'
+        setIsSyncing(true);
+      } else {
+        // LAYER 3 RESET: Clear local state on sign-out or session loss
+        setFolders(INITIAL_DATA);
+        localStorage.removeItem(STORAGE_KEY);
       }
       setLoading(false);
     });
@@ -91,8 +98,10 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(folders));
-  }, [folders]);
+    if (user) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(folders));
+    }
+  }, [folders, user]);
 
   useEffect(() => {
     const controls = animate(globalRotation, 360, {
@@ -103,11 +112,11 @@ const App: React.FC = () => {
     return () => controls.stop();
   }, [globalRotation]);
 
-  // Firestore Sync Logic - Strictly Gated by User
+  // THE SYNC BRIDGE: strictly gated by [user] dependency
   useEffect(() => {
     if (!user) return;
 
-    // The Auth-to-Firestore Bridge: Construction of requested Path
+    // Construction of strict Pathing Bridge
     const userPath = `artifacts/${appId}/users/${user.uid}/dashboard`;
 
     const appsRef = collection(db, `${userPath}/apps`);
@@ -118,64 +127,66 @@ const App: React.FC = () => {
 
     const checkSyncComplete = () => {
       if (appsLoaded && foldersLoaded) {
-        setIsSyncing(false); // Synchronization complete
+        setIsSyncing(false);
       }
     };
 
-    // Sync Apps: Merging Firestore apps with DEFAULT_APPS
+    // Apps Sync Listener: synchronization of AI library to cloud
     const unsubApps = onSnapshot(query(appsRef, orderBy('position', 'asc')), (snapshot) => {
       const userApps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AITool));
 
-      setFolders(prev => {
-        const next = { ...prev };
-        userApps.forEach(app => {
-          const cat = app.category;
-          if (!next[cat]) next[cat] = [];
+      if (userApps.length > 0) {
+        setFolders(prev => {
+          const next = { ...prev };
+          userApps.forEach(app => {
+            const cat = app.category;
+            if (!next[cat]) next[cat] = [];
 
-          // Merge logic: ID-based overwrite or append
-          const existingIdx = next[cat].findIndex(t => t.id === app.id);
-          if (existingIdx !== -1) {
-            next[cat][existingIdx] = app;
-          } else {
-            next[cat].push(app);
+            const existingIdx = next[cat].findIndex(t => t.id === app.id);
+            if (existingIdx !== -1) {
+              next[cat][existingIdx] = app;
+            } else {
+              next[cat].push(app);
+            }
+          });
+          for (const cat in next) {
+            next[cat].sort((a, b) => (a.position || 0) - (b.position || 0));
           }
+          return next;
         });
-
-        // Ensure positional integrity remains valid after merge
-        for (const cat in next) {
-          next[cat].sort((a, b) => (a.position || 0) - (b.position || 0));
-        }
-        return next;
-      });
+      }
 
       appsLoaded = true;
       checkSyncComplete();
     }, (err) => {
-      console.error("Apps sync error:", err);
+      console.error("Sync Bridge Error (Apps):", err);
       appsLoaded = true;
       checkSyncComplete();
     });
 
-    // Sync Folders
+    // Folders Sync Listener: synchronization of sectoral structure
     const unsubFolders = onSnapshot(query(foldersRef, orderBy('position', 'asc')), (snapshot) => {
-      setFolders(prev => {
-        const next = { ...prev };
-        snapshot.docs.forEach(doc => {
-          const folderName = doc.id;
-          if (!next[folderName]) next[folderName] = [];
+      if (!snapshot.empty) {
+        setFolders(prev => {
+          const next = { ...prev };
+          snapshot.docs.forEach(doc => {
+            const folderName = doc.id;
+            if (!next[folderName]) next[folderName] = [];
+          });
+          return next;
         });
-        return next;
-      });
+      }
 
       foldersLoaded = true;
       checkSyncComplete();
     }, (err) => {
-      console.error("Folders sync error:", err);
+      console.error("Sync Bridge Error (Folders):", err);
       foldersLoaded = true;
       checkSyncComplete();
     });
 
     return () => {
+      // Memory Leak Protection: Immediate unsubscribe on session termination
       unsubApps();
       unsubFolders();
     };
@@ -270,16 +281,15 @@ const App: React.FC = () => {
     return (
       <div className="w-screen h-screen bg-black flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-purple-500" size={48} />
-        {isSyncing && (
-          <p className="text-xs font-tech font-bold text-purple-400 tracking-[0.3em] uppercase animate-pulse">
-            Synchronizing with Galaxy...
-          </p>
-        )}
+        <p className="text-xs font-tech font-bold text-purple-400 tracking-[0.3em] uppercase animate-pulse">
+          {loading ? "INITIALIZING GALAXY..." : "Synchronizing with Galaxy..."}
+        </p>
       </div>
     );
   }
 
-  if (!user) {
+  // ZERO-STATE CRASH PROTECTION: Auth Guard Condition
+  if (!user && !loading) {
     return (
       <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
         <Starfield />
