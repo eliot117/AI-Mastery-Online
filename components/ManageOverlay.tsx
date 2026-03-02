@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Edit2, FolderPlus, LayoutGrid, List, Upload, GripVertical, Check } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, FolderPlus, LayoutGrid, List, Upload, GripVertical, Check, LogOut } from 'lucide-react';
 import { AITool } from '../types';
-import { User } from '@supabase/supabase-js';
-import { db } from '../utils/firebase';
+import { getDomain, getIconHorseUrl, getAppFallbackIcon } from '../utils/logoUtils';
+import { User } from 'firebase/auth';
+import { db, appId } from '../App';
 import {
   doc,
   setDoc,
@@ -89,11 +90,13 @@ const SortableAppItem: React.FC<SortableAppItemProps> = ({ tool, onEdit, onReque
             <GripVertical size={16} />
           </button>
           <div className="w-11 h-11 rounded-[16px] bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
-            {tool.logoUrl ? (
-              <img src={tool.logoUrl} className="w-full h-full object-contain" />
-            ) : (
-              <span className="text-xl font-tech font-bold text-white/40">{tool.icon.charAt(0)}</span>
-            )}
+            <img
+              src={tool.logoUrl || getIconHorseUrl(tool.url)}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = getAppFallbackIcon(tool.name);
+              }}
+            />
           </div>
         </div>
         <div>
@@ -211,11 +214,13 @@ const SortableFolderItem: React.FC<SortableFolderItemProps> = ({
               key={t.id}
               className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black"
             >
-              {t.logoUrl ? (
-                <img src={t.logoUrl} className="w-full h-full object-contain" />
-              ) : (
-                <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>
-              )}
+              <img
+                src={t.logoUrl || getIconHorseUrl(t.url)}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = getAppFallbackIcon(t.name);
+                }}
+              />
             </div>
           ))}
         </div>
@@ -237,6 +242,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   onUpdateFolders,
   onReorderTools,
   onReorderFolders,
+  onSignOut,
   user
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'folders'>('apps');
@@ -314,7 +320,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     }));
 
     if (user) {
-      const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, newApp.id);
+      const appRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/apps`, newApp.id);
       setDoc(appRef, newApp).catch(console.error);
     }
 
@@ -339,7 +345,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     });
 
     if (user) {
-      const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, editingApp.id);
+      const appRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/apps`, editingApp.id);
       setDoc(appRef, editingApp).catch(console.error);
     }
 
@@ -356,7 +362,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     });
 
     if (user) {
-      const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, id);
+      const appRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/apps`, id);
       deleteDoc(appRef).catch(console.error);
     }
 
@@ -370,7 +376,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     onUpdateFolders(prev => ({ ...prev, [newFolderName]: [] }));
 
     if (user) {
-      const folderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, newFolderName);
+      const folderRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/folders`, newFolderName);
       setDoc(folderRef, {
         name: newFolderName,
         position: Object.keys(folders).length
@@ -388,7 +394,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     });
 
     if (user) {
-      const folderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, name);
+      const folderRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/folders`, name);
       deleteDoc(folderRef).catch(console.error);
     }
 
@@ -408,13 +414,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     if (user) {
       try {
         const batch = writeBatch(db);
-        const newFolderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, newName);
+        const newFolderRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/folders`, newName);
         batch.set(newFolderRef, { name: newName, position: 0 });
-        const oldFolderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, oldName);
+        const oldFolderRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/folders`, oldName);
         batch.delete(oldFolderRef);
         const toolsInFolder = folders[oldName] || [];
         toolsInFolder.forEach(tool => {
-          const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, tool.id);
+          const appRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/apps`, tool.id);
           batch.update(appRef, { category: newName });
         });
         await batch.commit();
@@ -430,7 +436,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     const { active } = event;
     setActiveId(active.id as string);
     if (activeTab === 'apps') {
-      const tool = Object.values(folders).flat().find(t => t.id === active.id);
+      const tool = (Object.values(folders).flat() as AITool[]).find(t => t.id === active.id);
       if (tool) setActiveTool(tool);
     } else {
       setActiveFolderName(active.id as string);
@@ -445,7 +451,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
     if (over && active.id !== over.id) {
       if (activeTab === 'apps') {
-        const activeTool = Object.values(folders).flat().find(t => t.id === active.id);
+        const activeTool = (Object.values(folders).flat() as AITool[]).find(t => t.id === active.id);
         if (!activeTool) return;
         const folderName = activeTool.category;
         const items = folders[folderName];
@@ -510,6 +516,15 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
           >
             <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 items-center border-b border-white/5">
               <div className="flex items-center min-w-0 pr-12">
+                {user && (
+                  <button
+                    onClick={onSignOut}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 font-sans text-[10px] tracking-widest uppercase transition-all"
+                  >
+                    <LogOut size={12} />
+                    <span>Signal Lost</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex justify-center order-3 md:order-2">
@@ -765,11 +780,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                               <div className="flex items-center gap-3">
                                 <GripVertical size={16} className="text-gray-400" />
                                 <div className="w-11 h-11 rounded-[16px] bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden">
-                                  {activeTool.logoUrl ? (
-                                    <img src={activeTool.logoUrl} className="w-full h-full object-contain" />
-                                  ) : (
-                                    <span className="text-xl font-tech font-bold text-white/40">{activeTool.icon.charAt(0)}</span>
-                                  )}
+                                  <img
+                                    src={activeTool.logoUrl || getIconHorseUrl(activeTool.url)}
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = getAppFallbackIcon(activeTool.name);
+                                    }}
+                                  />
                                 </div>
                               </div>
                               <div>
@@ -797,11 +814,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                     key={t.id}
                                     className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black"
                                   >
-                                    {t.logoUrl ? (
-                                      <img src={t.logoUrl} className="w-full h-full object-contain" />
-                                    ) : (
-                                      <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>
-                                    )}
+                                    <img
+                                      src={t.logoUrl || getIconHorseUrl(t.url)}
+                                      className="w-full h-full object-contain"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = getAppFallbackIcon(t.name);
+                                      }}
+                                    />
                                   </div>
                                 ))}
                               </div>

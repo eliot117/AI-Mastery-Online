@@ -9,7 +9,16 @@ import { Search, Settings, LogOut, User as UserIcon, Loader2 } from 'lucide-reac
 import { AITool } from './types';
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
+import {
+  getAuth,
+  signInAnonymously,
+  signInWithCustomToken,
+  onAuthStateChanged,
+  User,
+  signOut as firebaseSignOut,
+  setPersistence,
+  browserLocalPersistence
+} from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, query, orderBy, writeBatch, doc } from 'firebase/firestore';
 
 // Environment-safe global variables (No .env)
@@ -20,7 +29,8 @@ declare global {
 }
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'master-galaxy';
+// STRICT FALLBACK: Ensure appId is never null
+const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'master-galaxy';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -32,6 +42,7 @@ const STORAGE_KEY = 'ai_mastery_data_v3';
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false); // Synchronization state
   const [searchQuery, setSearchQuery] = useState('');
   const [folders, setFolders] = useState<Record<string, AITool[]>>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -47,9 +58,15 @@ const App: React.FC = () => {
   const globalRotation = useMotionValue(0);
 
   useEffect(() => {
+    // Hardware-Level Persistence: Ensure session survives restarts
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
+
     // Auth Listener
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        setIsSyncing(true); // Show local loading until cloud data 'pops'
+      }
       setLoading(false);
     });
 
@@ -85,26 +102,36 @@ const App: React.FC = () => {
     return () => controls.stop();
   }, [globalRotation]);
 
-  // Firestore Sync Logic
+  // Firestore Sync Logic - Strictly Gated by User
   useEffect(() => {
     if (!user) return;
 
-    const baseDashboardPath = `artifacts/${appId}/users/${user.uid}/dashboard`;
-    const appsRef = collection(db, `${baseDashboardPath}/apps`);
-    const foldersRef = collection(db, `${baseDashboardPath}/folders`);
+    // The Auth-to-Firestore Bridge: Construction of requested Path
+    const userPath = `artifacts/${appId}/users/${user.uid}/dashboard`;
 
-    // Sync Apps
+    const appsRef = collection(db, `${userPath}/apps`);
+    const foldersRef = collection(db, `${userPath}/folders`);
+
+    let appsLoaded = false;
+    let foldersLoaded = false;
+
+    const checkSyncComplete = () => {
+      if (appsLoaded && foldersLoaded) {
+        setIsSyncing(false); // Synchronization complete
+      }
+    };
+
+    // Sync Apps: Merging Firestore apps with DEFAULT_APPS
     const unsubApps = onSnapshot(query(appsRef, orderBy('position', 'asc')), (snapshot) => {
       const userApps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AITool));
 
       setFolders(prev => {
-        // Deep copy of initial/current data to merge
         const next = { ...prev };
-
         userApps.forEach(app => {
           const cat = app.category;
           if (!next[cat]) next[cat] = [];
 
+          // Merge logic: ID-based overwrite or append
           const existingIdx = next[cat].findIndex(t => t.id === app.id);
           if (existingIdx !== -1) {
             next[cat][existingIdx] = app;
@@ -113,13 +140,19 @@ const App: React.FC = () => {
           }
         });
 
-        // Ensure positions are respected
+        // Ensure positional integrity remains valid after merge
         for (const cat in next) {
           next[cat].sort((a, b) => (a.position || 0) - (b.position || 0));
         }
-
         return next;
       });
+
+      appsLoaded = true;
+      checkSyncComplete();
+    }, (err) => {
+      console.error("Apps sync error:", err);
+      appsLoaded = true;
+      checkSyncComplete();
     });
 
     // Sync Folders
@@ -132,6 +165,13 @@ const App: React.FC = () => {
         });
         return next;
       });
+
+      foldersLoaded = true;
+      checkSyncComplete();
+    }, (err) => {
+      console.error("Folders sync error:", err);
+      foldersLoaded = true;
+      checkSyncComplete();
     });
 
     return () => {
@@ -155,15 +195,12 @@ const App: React.FC = () => {
     const query = searchQuery.trim().toLowerCase();
 
     if (!query) {
-      // Respect fixed folder ordering when not searching
       return [...(folders[activeFolder] || [])];
     } else {
-      // Filter across all folders when searching
       tools = (Object.values(folders).flat() as AITool[]).filter(tool =>
         tool.name.toLowerCase().includes(query) ||
         tool.description.toLowerCase().includes(query)
       );
-      // Alphabetical sort ONLY during search for clarity
       return tools.sort((a, b) => a.name.localeCompare(b.name));
     }
   }, [activeFolder, searchQuery, folders]);
@@ -189,10 +226,7 @@ const App: React.FC = () => {
   };
 
   const handleReorder = async (folderName: string, newTools: AITool[]) => {
-    // Optimistic UI update
     setFolders(prev => ({ ...prev, [folderName]: newTools }));
-
-    // Firestore persistence
     if (user) {
       try {
         const batch = writeBatch(db);
@@ -208,7 +242,6 @@ const App: React.FC = () => {
   };
 
   const handleReorderFolders = async (newFolderOrder: string[]) => {
-    // Optimistic UI update
     setFolders(prev => {
       const next: Record<string, AITool[]> = {};
       newFolderOrder.forEach(name => {
@@ -217,7 +250,6 @@ const App: React.FC = () => {
       return next;
     });
 
-    // Firestore persistence
     if (user) {
       try {
         const batch = writeBatch(db);
@@ -232,10 +264,16 @@ const App: React.FC = () => {
     }
   };
 
-  if (loading) {
+  // LOAD STATES
+  if (loading || (user && isSyncing)) {
     return (
-      <div className="w-screen h-screen bg-black flex items-center justify-center">
+      <div className="w-screen h-screen bg-black flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-purple-500" size={48} />
+        {isSyncing && (
+          <p className="text-xs font-tech font-bold text-purple-400 tracking-[0.3em] uppercase animate-pulse">
+            Synchronizing with Galaxy...
+          </p>
+        )}
       </div>
     );
   }
@@ -245,7 +283,6 @@ const App: React.FC = () => {
       <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col items-center justify-center select-none text-white">
         <Starfield />
         <div className="relative z-50 flex flex-col items-center">
-
           <Auth onAuthComplete={() => { }} />
         </div>
       </div>
@@ -404,7 +441,7 @@ const App: React.FC = () => {
               className="relative w-40 h-40 flex items-center justify-center"
             >
               <img
-                src={navigatingTo.logoUrl || `https://www.google.com/s2/favicons?sz=128&domain=${new URL(navigatingTo.url).hostname}`}
+                src={navigatingTo.logoUrl || `https://icon.horse/icon/${new URL(navigatingTo.url).hostname.replace(/^www\./, '')}`}
                 alt=""
                 className="w-full h-full object-contain"
                 onError={(e) => {
