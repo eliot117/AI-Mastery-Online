@@ -4,19 +4,34 @@ import { GalaxyEntity } from './components/GalaxyEntity';
 import { GALAXY_FOLDERS as INITIAL_DATA } from './data';
 import { ManageOverlay } from './components/ManageOverlay';
 import { Auth } from './components/Auth';
-import { supabase } from './utils/supabaseClient';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { Search, Settings, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
 import { AITool } from './types';
-import { User } from '@supabase/supabase-js';
+
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
+import { getFirestore, collection, onSnapshot, query, orderBy, writeBatch, doc } from 'firebase/firestore';
+
+// Environment-safe global variables (No .env)
+declare global {
+  const __firebase_config: string;
+  const __app_id: string | undefined;
+  const __initial_auth_token: string | undefined;
+}
+
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'master-galaxy';
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export { appId };
 
 const STORAGE_KEY = 'ai_mastery_data_v3';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showAuth, setShowAuth] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [folders, setFolders] = useState<Record<string, AITool[]>>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -32,37 +47,29 @@ const App: React.FC = () => {
   const globalRotation = useMotionValue(0);
 
   useEffect(() => {
-    const fetchProfile = async (userId: string) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+    // Auth Listener
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
 
-      if (!error && data) {
-        setProfile(data);
+    // Auto-Login Sequence (Strict Persistence Rule)
+    const initAuth = async () => {
+      try {
+        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        if (token) {
+          await signInWithCustomToken(auth, token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Auth initialization failed:", err);
+        setLoading(false);
       }
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        fetchProfile(currentUser.id);
-        setShowAuth(false);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    initAuth();
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -77,6 +84,61 @@ const App: React.FC = () => {
     });
     return () => controls.stop();
   }, [globalRotation]);
+
+  // Firestore Sync Logic
+  useEffect(() => {
+    if (!user) return;
+
+    const baseDashboardPath = `artifacts/${appId}/users/${user.uid}/dashboard`;
+    const appsRef = collection(db, `${baseDashboardPath}/apps`);
+    const foldersRef = collection(db, `${baseDashboardPath}/folders`);
+
+    // Sync Apps
+    const unsubApps = onSnapshot(query(appsRef, orderBy('position', 'asc')), (snapshot) => {
+      const userApps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AITool));
+
+      setFolders(prev => {
+        // Deep copy of initial/current data to merge
+        const next = { ...prev };
+
+        userApps.forEach(app => {
+          const cat = app.category;
+          if (!next[cat]) next[cat] = [];
+
+          const existingIdx = next[cat].findIndex(t => t.id === app.id);
+          if (existingIdx !== -1) {
+            next[cat][existingIdx] = app;
+          } else {
+            next[cat].push(app);
+          }
+        });
+
+        // Ensure positions are respected
+        for (const cat in next) {
+          next[cat].sort((a, b) => (a.position || 0) - (b.position || 0));
+        }
+
+        return next;
+      });
+    });
+
+    // Sync Folders
+    const unsubFolders = onSnapshot(query(foldersRef, orderBy('position', 'asc')), (snapshot) => {
+      setFolders(prev => {
+        const next = { ...prev };
+        snapshot.docs.forEach(doc => {
+          const folderName = doc.id;
+          if (!next[folderName]) next[folderName] = [];
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      unsubApps();
+      unsubFolders();
+    };
+  }, [user]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -126,8 +188,48 @@ const App: React.FC = () => {
     }, 700);
   };
 
-  const handleReorder = (folderName: string, newTools: AITool[]) => {
+  const handleReorder = async (folderName: string, newTools: AITool[]) => {
+    // Optimistic UI update
     setFolders(prev => ({ ...prev, [folderName]: newTools }));
+
+    // Firestore persistence
+    if (user) {
+      try {
+        const batch = writeBatch(db);
+        newTools.forEach((tool, idx) => {
+          const appRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/apps`, tool.id);
+          batch.update(appRef, { position: idx });
+        });
+        await batch.commit();
+      } catch (err) {
+        console.error("Reorder tools failed:", err);
+      }
+    }
+  };
+
+  const handleReorderFolders = async (newFolderOrder: string[]) => {
+    // Optimistic UI update
+    setFolders(prev => {
+      const next: Record<string, AITool[]> = {};
+      newFolderOrder.forEach(name => {
+        next[name] = prev[name];
+      });
+      return next;
+    });
+
+    // Firestore persistence
+    if (user) {
+      try {
+        const batch = writeBatch(db);
+        newFolderOrder.forEach((folderName, idx) => {
+          const folderRef = doc(db, `artifacts/${appId}/users/${user.uid}/dashboard/folders`, folderName);
+          batch.set(folderRef, { name: folderName, position: idx }, { merge: true });
+        });
+        await batch.commit();
+      } catch (err) {
+        console.error("Reorder folders failed:", err);
+      }
+    }
   };
 
   if (loading) {
@@ -279,23 +381,11 @@ const App: React.FC = () => {
         folders={folders}
         onUpdateFolders={setFolders}
         onReorderTools={handleReorder}
-        onSignOut={() => supabase.auth.signOut()}
+        onReorderFolders={handleReorderFolders}
+        onSignOut={() => firebaseSignOut(auth)}
+        user={user}
       />
-
       <AnimatePresence>
-        {showAuth && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAuth(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            />
-            <Auth onAuthComplete={() => setShowAuth(false)} />
-          </div>
-        )}
-
         {navigatingTo && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -338,7 +428,7 @@ const App: React.FC = () => {
           animation: gradient 5s ease infinite;
         }
       `}} />
-    </div>
+    </div >
   );
 };
 

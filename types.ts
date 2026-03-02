@@ -8,6 +8,7 @@ export interface AITool {
   icon: string;
   logoUrl?: string;
   clickCount?: number;
+  position?: number;
 }
 
 export interface ToolFolder {

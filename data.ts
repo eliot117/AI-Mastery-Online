@@ -24,8 +24,9 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'a10', name: "Grok", url: "https://grok.com/", description: "xAI Grok", category: "Agents", icon: "G" },
     { id: 'a11', name: "DeepSeek", url: "https://chat.deepseek.com/", description: "Reasoning AI", category: "Agents", icon: "D" },
     { id: 'a12', name: "Kimi AI", url: "https://www.kimi.com/", description: "Long-context AI", category: "Agents", icon: "K", logoUrl: KIMI_AI_LOGO },
-    { id: 'a13', name: "Poe", url: "https://poe.com/", description: "AI Bot Hub", category: "Agents", icon: "P" },
-    { id: 'a14', name: "Prompt Master", url: "https://claude.ai/chat/9acc1b35-32b2-4af4-96a3-9cde168251f5", description: "Expert Prompt Assistant", category: "Agents", icon: "P" },
-    { id: 'a15', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "P" }
+    { id: 'a13', name: "Zero GPT", url: "https://www.zerogpt.com/", description: "AI Content Detector", category: "Agents", icon: "Z" },
+    { id: 'a14', name: "Poe", url: "https://poe.com/", description: "AI Bot Hub", category: "Agents", icon: "P" },
+    { id: 'a15', name: "Prompt Master", url: "https://claude.ai/chat/9acc1b35-32b2-4af4-96a3-9cde168251f5", description: "Expert Prompt Assistant", category: "Agents", icon: "P" },
+    { id: 'a16', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "P" }
   ]
 };

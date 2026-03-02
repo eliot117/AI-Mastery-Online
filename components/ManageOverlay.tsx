@@ -1,7 +1,36 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { X, Plus, Trash2, Edit2, FolderPlus, LayoutGrid, List, Upload, GripVertical, Check, LogOut } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Plus, Trash2, Edit2, FolderPlus, LayoutGrid, List, Upload, GripVertical, Check } from 'lucide-react';
 import { AITool } from '../types';
+import { User } from '@supabase/supabase-js';
+import { db } from '../utils/firebase';
+import {
+  doc,
+  setDoc,
+  deleteDoc,
+  collection,
+  writeBatch
+} from 'firebase/firestore';
+
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
+  DragStartEvent,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 /**
  * LOGO PROTOCOL: To import new logos, use a direct HTTPS URL to a CDN or brand-hosted PNG/SVG. 
@@ -14,8 +43,192 @@ interface ManageOverlayProps {
   folders: Record<string, AITool[]>;
   onUpdateFolders: React.Dispatch<React.SetStateAction<Record<string, AITool[]>>>;
   onReorderTools: (folderName: string, newTools: AITool[]) => void;
+  onReorderFolders: (newFolderOrder: string[]) => void;
   onSignOut: () => void;
+  user: User | null;
 }
+
+interface SortableAppItemProps {
+  tool: AITool;
+  onEdit: (tool: AITool) => void;
+  onRequestDelete: (id: string) => void;
+}
+
+const SortableAppItem: React.FC<SortableAppItemProps> = ({ tool, onEdit, onRequestDelete }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tool.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group flex items-center justify-between p-5 bg-white/5 rounded-[24px] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.07] ${isDragging ? 'z-0' : 'z-10'}`}
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            type="button"
+            className="cursor-grab active:cursor-grabbing text-gray-700 group-hover:text-gray-400 p-2 outline-none"
+          >
+            <GripVertical size={16} />
+          </button>
+          <div className="w-11 h-11 rounded-[16px] bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
+            {tool.logoUrl ? (
+              <img src={tool.logoUrl} className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-xl font-tech font-bold text-white/40">{tool.icon.charAt(0)}</span>
+            )}
+          </div>
+        </div>
+        <div>
+          <h4 className="text-[12px] font-sans font-black text-white tracking-wide uppercase">{tool.name}</h4>
+          <p className="text-[10px] font-sans font-bold text-gray-500 truncate max-w-[180px]">
+            {tool.url ? new URL(tool.url).hostname : ''}
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onClick={() => onEdit(tool)}
+          className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-blue-400 transition-all"
+        >
+          <Edit2 size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onRequestDelete(tool.id)}
+          className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-400 transition-all"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+interface SortableFolderItemProps {
+  name: string;
+  tools: AITool[];
+  isEditing: boolean;
+  onBeginEdit: () => void;
+  onRename: (oldName: string, newName: string) => void;
+  onRequestDelete: (name: string) => void;
+}
+
+const SortableFolderItem: React.FC<SortableFolderItemProps> = ({
+  name,
+  tools,
+  isEditing,
+  onBeginEdit,
+  onRename,
+  onRequestDelete,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: name });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group p-8 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between min-h-[160px] ${isDragging ? 'z-0' : 'z-10'}`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            type="button"
+            className="cursor-grab active:cursor-grabbing text-gray-700 group-hover:text-gray-500 p-2 outline-none"
+          >
+            <GripVertical size={16} />
+          </button>
+          {isEditing ? (
+            <input
+              autoFocus
+              defaultValue={name}
+              onBlur={(e) => onRename(name, e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onRename(name, e.currentTarget.value)}
+              className="bg-transparent border-b border-purple-500 focus:outline-none text-white font-sans font-black text-xl uppercase tracking-widest w-full mr-4 rounded-[24px] px-2"
+            />
+          ) : (
+            <h4 className="text-xl font-sans font-black text-white tracking-widest uppercase truncate leading-none">
+              {name}
+            </h4>
+          )}
+        </div>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={onBeginEdit}
+            className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-white transition-all"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onRequestDelete(name)}
+            className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-500 transition-all"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+      <div className="flex items-center justify-between mt-8">
+        <div className="flex -space-x-3">
+          {tools.slice(0, 5).map((t) => (
+            <div
+              key={t.id}
+              className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black"
+            >
+              {t.logoUrl ? (
+                <img src={t.logoUrl} className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-3xl font-sans font-black text-white leading-none">{tools.length}</span>
+          <span className="text-[9px] font-sans font-bold text-purple-500/60 uppercase tracking-widest">
+            TOOLS
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   isOpen,
@@ -23,7 +236,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   folders,
   onUpdateFolders,
   onReorderTools,
-  onSignOut
+  onReorderFolders,
+  user
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'folders'>('apps');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -41,8 +255,20 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
   const [newFolderName, setNewFolderName] = useState('');
 
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<AITool | null>(null);
+  const [activeFolderName, setActiveFolderName] = useState<string | null>(null);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   useEffect(() => {
     if ((editingApp || editingFolder) && scrollContainerRef.current) {
@@ -76,15 +302,21 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       url: newAppUrl,
       description: 'Added via Admin Command Center',
       category: newAppFolder,
-      icon: newAppName.charAt(0),
+      icon: newAppName.charAt(0).toUpperCase(),
       logoUrl: newAppLogo || undefined,
-      clickCount: 0
+      clickCount: 0,
+      position: (folders[newAppFolder]?.length || 0)
     };
 
     onUpdateFolders(prev => ({
       ...prev,
       [newAppFolder]: [...(prev[newAppFolder] || []), newApp]
     }));
+
+    if (user) {
+      const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, newApp.id);
+      setDoc(appRef, newApp).catch(console.error);
+    }
 
     setNewAppName('');
     setNewAppUrl('');
@@ -105,6 +337,12 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       next[targetCategory] = [...(next[targetCategory] || []), editingApp];
       return next;
     });
+
+    if (user) {
+      const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, editingApp.id);
+      setDoc(appRef, editingApp).catch(console.error);
+    }
+
     setEditingApp(null);
   };
 
@@ -116,13 +354,29 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       }
       return next;
     });
+
+    if (user) {
+      const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, id);
+      deleteDoc(appRef).catch(console.error);
+    }
+
     setConfirmDelete(null);
   };
 
   const handleAddFolder = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFolderName || folders[newFolderName]) return;
+
     onUpdateFolders(prev => ({ ...prev, [newFolderName]: [] }));
+
+    if (user) {
+      const folderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, newFolderName);
+      setDoc(folderRef, {
+        name: newFolderName,
+        position: Object.keys(folders).length
+      }).catch(console.error);
+    }
+
     setNewFolderName('');
   };
 
@@ -132,18 +386,83 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       delete next[name];
       return next;
     });
+
+    if (user) {
+      const folderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, name);
+      deleteDoc(folderRef).catch(console.error);
+    }
+
     setConfirmDelete(null);
   };
 
-  const handleRenameFolder = (oldName: string, newName: string) => {
+  const handleRenameFolder = async (oldName: string, newName: string) => {
     if (!newName || folders[newName]) return;
+
     onUpdateFolders(prev => {
       const next = { ...prev };
       next[newName] = next[oldName].map(app => ({ ...app, category: newName }));
       delete next[oldName];
       return next;
     });
+
+    if (user) {
+      try {
+        const batch = writeBatch(db);
+        const newFolderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, newName);
+        batch.set(newFolderRef, { name: newName, position: 0 });
+        const oldFolderRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/folders`, oldName);
+        batch.delete(oldFolderRef);
+        const toolsInFolder = folders[oldName] || [];
+        toolsInFolder.forEach(tool => {
+          const appRef = doc(db, `artifacts/master-galaxy/users/${user.uid}/dashboard/apps`, tool.id);
+          batch.update(appRef, { category: newName });
+        });
+        await batch.commit();
+      } catch (err) {
+        console.error("Rename failed:", err);
+      }
+    }
+
     setEditingFolder(null);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    if (activeTab === 'apps') {
+      const tool = Object.values(folders).flat().find(t => t.id === active.id);
+      if (tool) setActiveTool(tool);
+    } else {
+      setActiveFolderName(active.id as string);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    setActiveTool(null);
+    setActiveFolderName(null);
+
+    if (over && active.id !== over.id) {
+      if (activeTab === 'apps') {
+        const activeTool = Object.values(folders).flat().find(t => t.id === active.id);
+        if (!activeTool) return;
+        const folderName = activeTool.category;
+        const items = folders[folderName];
+        const oldIndex = items.findIndex(t => t.id === active.id);
+        const newIndex = items.findIndex(t => t.id === over.id);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          onReorderTools(folderName, arrayMove(items, oldIndex, newIndex));
+        }
+      } else {
+        const items = Object.keys(folders);
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          onReorderFolders(arrayMove(items, oldIndex, newIndex));
+        }
+      }
+    }
   };
 
   const switchTab = (tab: 'apps' | 'folders') => {
@@ -189,16 +508,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
             exit={{ scale: 0.95, y: 20 }}
             className="w-full max-w-7xl h-[85vh] glass-heavy rounded-[32px] border border-white/10 flex flex-col overflow-hidden relative"
           >
-            {/* Header: Title-free structure with Symmetrical Navigation */}
             <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 items-center border-b border-white/5">
-              <div className="flex items-center min-w-0">
-                <button
-                  onClick={onSignOut}
-                  className="flex items-center gap-2 px-6 h-11 bg-white/5 hover:bg-white/10 border border-white/5 rounded-[24px] font-sans text-[10px] font-bold tracking-widest uppercase transition-all text-gray-400 hover:text-white"
-                >
-                  <LogOut size={16} />
-                  <span>Sign Out</span>
-                </button>
+              <div className="flex items-center min-w-0 pr-12">
               </div>
 
               <div className="flex justify-center order-3 md:order-2">
@@ -270,196 +581,242 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                   className="absolute inset-0 overflow-y-auto p-8 custom-scrollbar"
                   ref={scrollContainerRef}
                 >
-                  {activeTab === 'apps' ? (
-                    <div className="space-y-12">
-                      {viewMode === 'grid' && (
-                        <section className="bg-white/5 p-4 rounded-[24px] border border-white/5">
-                          <h3 className="text-[10px] font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
-                            <Plus size={14} /> {editingApp ? 'RECONFIGURE TOOL' : 'ADD AI APP OR TOOL'}
-                          </h3>
-                          <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="flex flex-col md:flex-row gap-2 items-center w-full">
-                            <div className="flex-1 w-full">
-                              <input
-                                type="text"
-                                placeholder="Name"
-                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
-                                value={editingApp ? editingApp.name : newAppName}
-                                onChange={(e) => editingApp ? setEditingApp({ ...editingApp, name: e.target.value }) : setNewAppName(e.target.value)}
-                              />
-                            </div>
-                            <div className="flex-1 w-full">
-                              <input
-                                type="text"
-                                placeholder="URL"
-                                className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
-                                value={editingApp ? editingApp.url : newAppUrl}
-                                onChange={(e) => editingApp ? setEditingApp({ ...editingApp, url: e.target.value }) : setNewAppUrl(e.target.value)}
-                              />
-                            </div>
-                            <div className="flex-1 w-full flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold text-gray-400 hover:text-white transition-all h-11"
-                              >
-                                {(editingApp?.logoUrl || newAppLogo) ? <Check size={14} className="text-green-500" /> : <Upload size={14} />}
-                                {(editingApp?.logoUrl || newAppLogo) ? 'Logo Set' : 'Logo'}
-                              </button>
-                              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                              <select
-                                className="w-2/5 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold appearance-none focus:outline-none focus:border-purple-500/50 transition-all text-white cursor-pointer h-11 text-center"
-                                value={editingApp ? editingApp.category : newAppFolder}
-                                onChange={(e) => editingApp ? setEditingApp({ ...editingApp, category: e.target.value }) : setNewAppFolder(e.target.value)}
-                              >
-                                {Object.keys(folders).map(f => <option key={f} value={f} className="bg-[#0f172a]">{f}</option>)}
-                              </select>
-                            </div>
-                            <div className="flex gap-2 items-center justify-end">
-                              <button
-                                type="submit"
-                                className={actionButtonClass}
-                              >
-                                {editingApp ? 'SAVE' : 'ADD'}
-                              </button>
-                              {(editingApp || newAppLogo) && (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  >
+                    {activeTab === 'apps' ? (
+                      <div className="space-y-12">
+                        {viewMode === 'grid' && (
+                          <section className="bg-white/5 p-4 rounded-[24px] border border-white/5">
+                            <h3 className="text-[10px] font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
+                              <Plus size={14} /> {editingApp ? 'RECONFIGURE TOOL' : 'ADD AI APP OR TOOL'}
+                            </h3>
+                            <form onSubmit={editingApp ? handleUpdateApp : handleAddApp} className="flex flex-col md:flex-row gap-2 items-center w-full">
+                              <div className="flex-1 w-full">
+                                <input
+                                  type="text"
+                                  placeholder="Name"
+                                  className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
+                                  value={editingApp ? editingApp.name : newAppName}
+                                  onChange={(e) => editingApp ? setEditingApp({ ...editingApp, name: e.target.value }) : setNewAppName(e.target.value)}
+                                />
+                              </div>
+                              <div className="flex-1 w-full">
+                                <input
+                                  type="text"
+                                  placeholder="URL"
+                                  className="w-full bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
+                                  value={editingApp ? editingApp.url : newAppUrl}
+                                  onChange={(e) => editingApp ? setEditingApp({ ...editingApp, url: e.target.value }) : setNewAppUrl(e.target.value)}
+                                />
+                              </div>
+                              <div className="flex-1 w-full flex gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => editingApp ? setEditingApp(null) : setNewAppLogo(null)}
-                                  className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white h-11 flex items-center justify-center"
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold text-gray-400 hover:text-white transition-all h-11"
                                 >
-                                  <X size={16} />
+                                  {(editingApp?.logoUrl || newAppLogo) ? <Check size={14} className="text-green-500" /> : <Upload size={14} />}
+                                  {(editingApp?.logoUrl || newAppLogo) ? 'Logo Set' : 'Logo'}
                                 </button>
-                              )}
-                            </div>
-                          </form>
-                        </section>
-                      )}
-
-                      <div className="space-y-12">
-                        {(Object.entries(folders) as [string, AITool[]][]).map(([folderName, tools]) => (
-                          <div key={folderName} className="space-y-6">
-                            <div className="flex flex-col items-center gap-4 px-2">
-                              <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter leading-none text-center">{folderName}</h3>
-                              <div className="h-[1px] w-1/4 bg-white/10" />
-                              <span className="text-4xl font-sans font-black text-purple-600/40 leading-none">{tools.length}</span>
-                            </div>
-
-                            {viewMode === 'grid' ? (
-                              <Reorder.Group
-                                axis="y"
-                                values={tools}
-                                onReorder={(newOrder) => onReorderTools(folderName, newOrder)}
-                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                              >
-                                {tools.map(tool => (
-                                  <Reorder.Item
-                                    key={tool.id}
-                                    value={tool}
-                                    className="group flex items-center justify-between p-5 bg-white/5 rounded-[24px] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.07]"
+                                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                                <select
+                                  className="w-2/5 bg-white/5 border border-white/10 rounded-[24px] px-4 py-3 text-xs font-sans font-bold appearance-none focus:outline-none focus:border-purple-500/50 transition-all text-white cursor-pointer h-11 text-center"
+                                  value={editingApp ? editingApp.category : newAppFolder}
+                                  onChange={(e) => editingApp ? setEditingApp({ ...editingApp, category: e.target.value }) : setNewAppFolder(e.target.value)}
+                                >
+                                  {Object.keys(folders).map(f => <option key={f} value={f} className="bg-[#0f172a]">{f}</option>)}
+                                </select>
+                              </div>
+                              <div className="flex gap-2 items-center justify-end">
+                                <button
+                                  type="submit"
+                                  className={actionButtonClass}
+                                >
+                                  {editingApp ? 'SAVE' : 'ADD'}
+                                </button>
+                                {(editingApp || newAppLogo) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => editingApp ? setEditingApp(null) : setNewAppLogo(null)}
+                                    className="px-4 bg-white/10 hover:bg-white/20 rounded-[24px] transition-all text-white h-11 flex items-center justify-center"
                                   >
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex items-center gap-3">
-                                        <GripVertical size={16} className="text-gray-700 group-hover:text-gray-400 cursor-grab active:cursor-grabbing" />
-                                        <div className="w-11 h-11 rounded-[16px] bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
-                                          {tool.logoUrl ? (
-                                            <img src={tool.logoUrl} className="w-full h-full object-contain" />
-                                          ) : (
-                                            <span className="text-xl font-tech font-bold text-white/40">{tool.icon.charAt(0)}</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <h4 className="text-[12px] font-sans font-black text-white tracking-wide uppercase">{tool.name}</h4>
-                                        <p className="text-[10px] font-sans font-bold text-gray-500 truncate max-w-[180px]">{new URL(tool.url).hostname}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => setEditingApp(tool)} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-blue-400 transition-all"><Edit2 size={16} /></button>
-                                      <button onClick={() => setConfirmDelete({ type: 'app', id: tool.id })} className="p-2.5 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-400 transition-all"><Trash2 size={16} /></button>
-                                    </div>
-                                  </Reorder.Item>
-                                ))}
-                              </Reorder.Group>
-                            ) : (
-                              <div className="space-y-1 pl-4 text-center">
-                                {tools.map(tool => (
-                                  <div key={tool.id} className="text-sm font-sans font-medium text-gray-400 hover:text-white transition-colors py-1 cursor-default uppercase tracking-widest">
-                                    {tool.name}
-                                  </div>
-                                ))}
+                                    <X size={16} />
+                                  </button>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-12">
-                      <section className="bg-white/5 p-4 rounded-[24px] border border-white/5">
-                        <h3 className="text-[10px] font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
-                          <FolderPlus size={14} /> NEW SECTOR
-                        </h3>
-                        <form onSubmit={handleAddFolder} className="flex gap-2 items-center">
-                          <input
-                            type="text"
-                            placeholder="Sector Identity"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
-                            value={newFolderName}
-                            onChange={(e) => setNewFolderName(e.target.value)}
-                          />
-                          <button
-                            type="submit"
-                            className={actionButtonClass}
-                          >
-                            CREATE
-                          </button>
-                        </form>
-                      </section>
+                            </form>
+                          </section>
+                        )}
 
-                      <div className="space-y-6">
-                        <h3 className="text-[10px] font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">ORBITAL SECTORS</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {(Object.entries(folders) as [string, AITool[]][]).map(([name, tools]) => (
-                            <div key={name} className="group p-8 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between min-h-[160px]">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                  <GripVertical size={16} className="text-gray-700 group-hover:text-gray-500" />
-                                  {editingFolder === name ? (
-                                    <input
-                                      autoFocus
-                                      defaultValue={name}
-                                      onBlur={(e) => handleRenameFolder(name, e.target.value)}
-                                      onKeyDown={(e) => e.key === 'Enter' && handleRenameFolder(name, e.currentTarget.value)}
-                                      className="bg-transparent border-b border-purple-500 focus:outline-none text-white font-sans font-black text-xl uppercase tracking-widest w-full mr-4 rounded-[24px] px-2"
-                                    />
-                                  ) : (
-                                    <h4 className="text-xl font-sans font-black text-white tracking-widest uppercase truncate leading-none">{name}</h4>
-                                  )}
-                                </div>
-                                <div className="flex gap-1">
-                                  <button onClick={() => setEditingFolder(name)} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-white transition-all"><Edit2 size={16} /></button>
-                                  <button onClick={() => setConfirmDelete({ type: 'folder', id: name })} className="p-2 hover:bg-white/10 rounded-[14px] text-gray-500 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
-                                </div>
+                        <div className="space-y-12">
+                          {(Object.entries(folders) as [string, AITool[]][]).map(([folderName, tools]) => (
+                            <div key={folderName} className="space-y-6">
+                              <div className="flex flex-col items-center gap-4 px-2">
+                                <h3 className="text-3xl font-sans font-black text-white uppercase tracking-tighter leading-none text-center">{folderName}</h3>
+                                <div className="h-[1px] w-1/4 bg-white/10" />
+                                <span className="text-4xl font-sans font-black text-purple-600/40 leading-none">{tools.length}</span>
                               </div>
-                              <div className="flex items-center justify-between mt-8">
-                                <div className="flex -space-x-3">
-                                  {tools.slice(0, 5).map(t => (
-                                    <div key={t.id} className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black">
-                                      {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain" /> : <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>}
+
+                              {viewMode === 'grid' ? (
+                                <SortableContext
+                                  items={tools.map(t => t.id)}
+                                  strategy={verticalListSortingStrategy}
+                                >
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {tools.map((tool) => (
+                                      <SortableAppItem
+                                        key={tool.id}
+                                        tool={tool}
+                                        onEdit={(t) => setEditingApp(t)}
+                                        onRequestDelete={(id) =>
+                                          setConfirmDelete({
+                                            type: 'app',
+                                            id,
+                                          })
+                                        }
+                                      />
+                                    ))}
+                                  </div>
+                                </SortableContext>
+                              ) : (
+                                <div className="space-y-1 pl-4 text-center">
+                                  {tools.map(tool => (
+                                    <div key={tool.id} className="text-sm font-sans font-medium text-gray-400 hover:text-white transition-colors py-1 cursor-default uppercase tracking-widest">
+                                      {tool.name}
                                     </div>
                                   ))}
                                 </div>
-                                <div className="flex flex-col items-end">
-                                  <span className="text-3xl font-sans font-black text-white leading-none">{tools.length}</span>
-                                  <span className="text-[9px] font-sans font-bold text-purple-500/60 uppercase tracking-widest">TOOLS</span>
-                                </div>
-                              </div>
+                              )}
                             </div>
                           ))}
                         </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="space-y-12">
+                        <section className="bg-white/5 p-4 rounded-[24px] border border-white/5">
+                          <h3 className="text-[10px] font-sans font-black text-purple-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
+                            <FolderPlus size={14} /> NEW SECTOR
+                          </h3>
+                          <form onSubmit={handleAddFolder} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              placeholder="Sector Identity"
+                              className="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-5 py-3 text-sm font-sans focus:outline-none focus:border-purple-500/50 transition-all text-white placeholder:text-gray-600 h-11"
+                              value={newFolderName}
+                              onChange={(e) => setNewFolderName(e.target.value)}
+                            />
+                            <button
+                              type="submit"
+                              className={actionButtonClass}
+                            >
+                              CREATE
+                            </button>
+                          </form>
+                        </section>
+
+                        <div className="space-y-6">
+                          <h3 className="text-[10px] font-sans font-black text-blue-400 tracking-[0.3em] uppercase mb-4">
+                            ORBITAL SECTORS
+                          </h3>
+                          <SortableContext
+                            items={Object.keys(folders)}
+                            strategy={rectSortingStrategy}
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {(Object.entries(folders) as [string, AITool[]][]).map(([name, tools]) => (
+                                <SortableFolderItem
+                                  key={name}
+                                  name={name}
+                                  tools={tools}
+                                  isEditing={editingFolder === name}
+                                  onBeginEdit={() => setEditingFolder(name)}
+                                  onRename={handleRenameFolder}
+                                  onRequestDelete={(folderName) =>
+                                    setConfirmDelete({
+                                      type: 'folder',
+                                      id: folderName,
+                                    })
+                                  }
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </div>
+                      </div>
+                    )}
+
+                    <DragOverlay dropAnimation={{
+                      sideEffects: defaultDropAnimationSideEffects({
+                        styles: {
+                          active: {
+                            opacity: '0.4',
+                          },
+                        },
+                      }),
+                    }}>
+                      {activeId ? (
+                        activeTab === 'apps' && activeTool ? (
+                          <div className="flex items-center justify-between p-5 bg-white/10 rounded-[24px] border border-white/20 shadow-2xl scale-[1.03] z-[100] backdrop-blur-xl">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-3">
+                                <GripVertical size={16} className="text-gray-400" />
+                                <div className="w-11 h-11 rounded-[16px] bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden">
+                                  {activeTool.logoUrl ? (
+                                    <img src={activeTool.logoUrl} className="w-full h-full object-contain" />
+                                  ) : (
+                                    <span className="text-xl font-tech font-bold text-white/40">{activeTool.icon.charAt(0)}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="text-[12px] font-sans font-black text-white tracking-wide uppercase">{activeTool.name}</h4>
+                                <p className="text-[10px] font-sans font-bold text-gray-500 truncate max-w-[180px]">
+                                  {activeTool.url ? new URL(activeTool.url).hostname : ''}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : activeFolderName ? (
+                          <div className="p-8 bg-white/10 rounded-[32px] border border-white/20 shadow-2xl scale-[1.03] z-[100] backdrop-blur-xl flex flex-col justify-between min-h-[160px] w-full">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-3">
+                                <GripVertical size={16} className="text-gray-500" />
+                                <h4 className="text-xl font-sans font-black text-white tracking-widest uppercase truncate leading-none">
+                                  {activeFolderName}
+                                </h4>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-8">
+                              <div className="flex -space-x-3">
+                                {folders[activeFolderName]?.slice(0, 5).map((t) => (
+                                  <div
+                                    key={t.id}
+                                    className="w-10 h-10 rounded-[14px] bg-black border border-white/10 flex items-center justify-center overflow-hidden ring-4 ring-black"
+                                  >
+                                    {t.logoUrl ? (
+                                      <img src={t.logoUrl} className="w-full h-full object-contain" />
+                                    ) : (
+                                      <span className="text-sm font-tech font-bold text-white/40">{t.icon.charAt(0)}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <span className="text-3xl font-sans font-black text-white leading-none">{folders[activeFolderName]?.length || 0}</span>
+                                <span className="text-[9px] font-sans font-bold text-purple-500/60 uppercase tracking-widest">
+                                  TOOLS
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null
+                      ) : null}
+                    </DragOverlay>
+                  </DndContext>
                 </motion.div>
               </AnimatePresence>
             </div>
