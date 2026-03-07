@@ -15,6 +15,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'a1', name: "Manus", url: "https://manus.im/app", description: "Universal AI Agent", category: "Agents", icon: "M" },
     { id: 'a2', name: "Genspark", url: "https://www.genspark.ai/", description: "All-in-One AI Workspace", category: "Agents", icon: "G" },
     { id: 'a3', name: "Runable", url: "https://runable.com/", description: "AI Execution Platform", category: "Agents", icon: "R" },
+    { id: 'a17', name: "Mercury 2", url: "https://chat.inceptionlabs.ai/", description: "Inception Labs Chat", category: "Agents", icon: "I", logoUrl: "https://icon.horse/icon/inceptionlabs.ai" },
     { id: 'a4', name: "Design Arena", url: "https://www.designarena.ai/", description: "Visual Playground", category: "Agents", icon: "D" },
     { id: 'a5', name: "AI Studio", url: "https://aistudio.google.com/prompts/new_chat", description: "Google AI Studio", category: "Agents", icon: "A" },
     { id: 'a6', name: "Claude", url: "https://claude.ai/new", description: "Anthropic's Assistant", category: "Agents", icon: "C" },
