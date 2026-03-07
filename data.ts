@@ -27,6 +27,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'a13', name: "Zero GPT", url: "https://www.zerogpt.com/", description: "AI Content Detector", category: "Agents", icon: "Z" },
     { id: 'a14', name: "Poe", url: "https://poe.com/", description: "AI Bot Hub", category: "Agents", icon: "P" },
     { id: 'a15', name: "Prompt Master", url: "https://claude.ai/chat/9acc1b35-32b2-4af4-96a3-9cde168251f5", description: "Expert Prompt Assistant", category: "Agents", icon: "P" },
-    { id: 'a16', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "P" }
+    { id: 'a16', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "P" },
+    { id: 'a17', name: "Inception Labs", url: "https://chat.inceptionlabs.ai/", description: "Inception Labs Chat", category: "Agents", icon: "I", logoUrl: "https://icon.horse/icon/inceptionlabs.ai" }
   ]
 };
