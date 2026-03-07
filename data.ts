@@ -15,6 +15,7 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'a1', name: "Manus", url: "https://manus.im/app", description: "Universal AI Agent", category: "Agents", icon: "M" },
     { id: 'a2', name: "Genspark", url: "https://www.genspark.ai/", description: "All-in-One AI Workspace", category: "Agents", icon: "G" },
     { id: 'a3', name: "Runable", url: "https://runable.com/", description: "AI Execution Platform", category: "Agents", icon: "R" },
+    { id: 'a17', name: "Mercury 2", url: "https://chat.inceptionlabs.ai/", description: "Inception Labs Chat", category: "Agents", icon: "I", logoUrl: "https://icon.horse/icon/inceptionlabs.ai" },
     { id: 'a4', name: "Design Arena", url: "https://www.designarena.ai/", description: "Visual Playground", category: "Agents", icon: "D" },
     { id: 'a5', name: "AI Studio", url: "https://aistudio.google.com/prompts/new_chat", description: "Google AI Studio", category: "Agents", icon: "A" },
     { id: 'a6', name: "Claude", url: "https://claude.ai/new", description: "Anthropic's Assistant", category: "Agents", icon: "C" },
@@ -27,7 +28,6 @@ export const GALAXY_FOLDERS: Record<string, AITool[]> = {
     { id: 'a13', name: "Zero GPT", url: "https://www.zerogpt.com/", description: "AI Content Detector", category: "Agents", icon: "Z" },
     { id: 'a14', name: "Poe", url: "https://poe.com/", description: "AI Bot Hub", category: "Agents", icon: "P" },
     { id: 'a15', name: "Prompt Master", url: "https://claude.ai/chat/9acc1b35-32b2-4af4-96a3-9cde168251f5", description: "Expert Prompt Assistant", category: "Agents", icon: "P" },
-    { id: 'a16', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "P" },
-    { id: 'a17', name: "Inception Labs", url: "https://chat.inceptionlabs.ai/", description: "Inception Labs Chat", category: "Agents", icon: "I", logoUrl: "https://icon.horse/icon/inceptionlabs.ai" }
+    { id: 'a16', name: "Prompt Engineer", url: "https://chatgpt.com/g/g-5XtVuRE8Y-prompt-engineer", description: "ChatGPT Prompt Specialist", category: "Agents", icon: "P" }
   ]
 };
