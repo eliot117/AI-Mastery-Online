@@ -538,6 +538,16 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     return out;
   }, [topLevelFolders, subFoldersByParent]);
 
+  /** orderedFolders split into one array per top-level folder (itself + its subs), for the divider between main folders. */
+  const folderGroups = useMemo(() => {
+    const groups: { folder: Folder; isSub: boolean; label: string }[][] = [];
+    for (const entry of orderedFolders) {
+      if (!entry.isSub) groups.push([entry]);
+      else groups[groups.length - 1]?.push(entry);
+    }
+    return groups;
+  }, [orderedFolders]);
+
   const draggingTool = draggingToolId ? (tools.find((t) => t.id === draggingToolId) ?? null) : null;
   const draggingFolder = draggingFolderId ? (foldersById.get(draggingFolderId) ?? null) : null;
 
@@ -925,21 +935,28 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                         onDragEnd={handleDragEnd}
                       >
                         <div className="space-y-6">
-                          {orderedFolders.map(({ folder, isSub, label }) => (
-                            <FolderDropSection
-                              key={folder.id}
-                              folder={folder}
-                              label={label}
-                              isSub={isSub}
-                              tools={toolsIn(folder.id)}
-                              viewMode={viewMode}
-                              draggingToolId={draggingToolId}
-                              draggingFromFolderId={draggingTool?.folder_id ?? null}
-                              onEdit={setEditingTool}
-                              onDelete={(tool) =>
-                                setConfirmDelete({ type: 'app', id: tool.id, label: tool.name })
-                              }
-                            />
+                          {folderGroups.map((group, groupIndex) => (
+                            <React.Fragment key={group[0].folder.id}>
+                              {group.map(({ folder, isSub, label }) => (
+                                <FolderDropSection
+                                  key={folder.id}
+                                  folder={folder}
+                                  label={label}
+                                  isSub={isSub}
+                                  tools={toolsIn(folder.id)}
+                                  viewMode={viewMode}
+                                  draggingToolId={draggingToolId}
+                                  draggingFromFolderId={draggingTool?.folder_id ?? null}
+                                  onEdit={setEditingTool}
+                                  onDelete={(tool) =>
+                                    setConfirmDelete({ type: 'app', id: tool.id, label: tool.name })
+                                  }
+                                />
+                              ))}
+                              {groupIndex < folderGroups.length - 1 && (
+                                <div className="mx-auto h-px w-2/3 bg-white/10" aria-hidden="true" />
+                              )}
+                            </React.Fragment>
                           ))}
                         </div>
 

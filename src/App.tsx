@@ -57,7 +57,21 @@ const App: React.FC = () => {
     }
     let active = true;
     setLoadingLibrary(true);
-    reload()
+
+    // One silent retry: a fresh sign-in can hit a transient hiccup on the
+    // very first request. Failing that visibly (an error banner, or worse,
+    // a genuinely empty galaxy) when a half-second retry would have quietly
+    // succeeded is worse than the small delay.
+    const loadWithRetry = async () => {
+      try {
+        await reload();
+      } catch {
+        await new Promise((r) => setTimeout(r, 600));
+        if (active) await reload();
+      }
+    };
+
+    loadWithRetry()
       .catch((e) => {
         if (active) setError(e instanceof Error ? e.message : 'Could not load your library.');
       })

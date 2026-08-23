@@ -21,10 +21,19 @@ export interface Library {
   tools: Tool[];
 }
 
+/**
+ * Reads the signed-in user's id from the local session — no network call.
+ * `getUser()` would re-verify the token against the Auth server every time,
+ * which is an extra network dependency at exactly the moment it's least
+ * reliable (right after an OAuth redirect). Not a security trade-off: every
+ * query is re-checked against the real token by Postgres RLS regardless of
+ * what id we read here, so a stale/forged local value can never grant access
+ * -- it can only ever cause a request to be correctly rejected.
+ */
 async function requireUserId(): Promise<string> {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) throw new Error('Not signed in');
-  return data.user.id;
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.user) throw new Error('Not signed in');
+  return data.session.user.id;
 }
 
 /** The signed-in user's own library. Never includes the base template. */
