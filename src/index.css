@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --nebula-purple: #8b5cf6;
+    --nebula-blue: #3b82f6;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #000000;
+    color: #ffffff;
+    overflow: hidden; /* Zero-scroll architecture */
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+@layer components {
+  .glass-heavy {
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .text-glow {
+    text-shadow:
+      0 0 10px rgba(139, 92, 246, 0.5),
+      0 0 20px rgba(59, 130, 246, 0.3);
+  }
+}
+
+/* Hide scrollbars globally, but keep scrolling functional */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
