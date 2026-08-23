@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { ConfigError } from './components/ConfigError';
 import { AuthProvider } from './hooks/useAuth';
+import { isSupabaseConfigured } from './lib/supabase';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -11,8 +13,12 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    {isSupabaseConfigured ? (
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    ) : (
+      <ConfigError />
+    )}
   </React.StrictMode>,
 );

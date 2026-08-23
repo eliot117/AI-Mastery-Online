@@ -15,4 +15,17 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Vendor libs change far less often than app code, so splitting them
+        // out keeps them cached across deploys.
+        manualChunks: {
+          motion: ['framer-motion'],
+          supabase: ['@supabase/supabase-js'],
+          dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+        },
+      },
+    },
+  },
 });
