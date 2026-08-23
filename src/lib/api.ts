@@ -3,10 +3,17 @@ import type { Folder, NewFolder, NewTool, Tool } from '../types';
 import { normalizeUserUrl } from './safeUrl';
 
 /**
- * Every read here is implicitly scoped by Row-Level Security: the database
- * only returns rows the signed-in user owns (plus the shared base template,
- * which only an admin can write). No client-side filtering is trusted for
- * access control.
+ * Row-Level Security is the access-control boundary: the database only ever
+ * returns rows the signed-in user is entitled to. Reads here additionally
+ * scope to `owner_id = <me>` for a different reason -- correctness, not
+ * security.
+ *
+ * The RLS SELECT policy also exposes the shared base template
+ * (`owner_id IS NULL`) to admins, since an admin must be able to manage it.
+ * Without an explicit owner filter an admin's own library would come back
+ * with the template merged in, showing every folder twice. Personal library
+ * reads are therefore always owner-scoped; the template is fetched
+ * deliberately via `fetchBaseTemplate`.
  */
 
 export interface Library {
@@ -20,10 +27,33 @@ async function requireUserId(): Promise<string> {
   return data.user.id;
 }
 
+/** The signed-in user's own library. Never includes the base template. */
 export async function fetchLibrary(): Promise<Library> {
+  const ownerId = await requireUserId();
+
   const [foldersRes, toolsRes] = await Promise.all([
-    supabase.from('folders').select('*').order('position'),
-    supabase.from('tools').select('*').order('position'),
+    supabase.from('folders').select('*').eq('owner_id', ownerId).order('position'),
+    supabase.from('tools').select('*').eq('owner_id', ownerId).order('position'),
+  ]);
+
+  if (foldersRes.error) throw foldersRes.error;
+  if (toolsRes.error) throw toolsRes.error;
+
+  return {
+    folders: (foldersRes.data ?? []) as Folder[],
+    tools: (toolsRes.data ?? []) as Tool[],
+  };
+}
+
+/**
+ * The shared starter library every new account is cloned from. Admin-only at
+ * the database level; kept separate from `fetchLibrary` so template rows can
+ * never leak into a personal galaxy view.
+ */
+export async function fetchBaseTemplate(): Promise<Library> {
+  const [foldersRes, toolsRes] = await Promise.all([
+    supabase.from('folders').select('*').is('owner_id', null).order('position'),
+    supabase.from('tools').select('*').is('owner_id', null).order('position'),
   ]);
 
   if (foldersRes.error) throw foldersRes.error;
@@ -91,6 +121,27 @@ export async function updateTool(
 export async function deleteTool(id: string): Promise<void> {
   const { error } = await supabase.from('tools').delete().eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * Moves a tool into another folder and appends it to the end of that
+ * folder's order. The database enforces that the destination folder has the
+ * same owner, so a tool can never be parked in someone else's folder.
+ */
+export async function moveToolToFolder(
+  toolId: string,
+  folderId: string,
+  position: number,
+): Promise<Tool> {
+  const { data, error } = await supabase
+    .from('tools')
+    .update({ folder_id: folderId, position })
+    .eq('id', toolId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Tool;
 }
 
 export async function reorderTools(orderedIds: string[]): Promise<void> {

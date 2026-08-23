@@ -216,6 +216,18 @@ const App: React.FC = () => {
     [run],
   );
 
+  const handleMoveTool = useCallback(
+    (toolId: string, folderId: string, position: number) =>
+      run(async () => {
+        setTools((prev) =>
+          prev.map((t) => (t.id === toolId ? { ...t, folder_id: folderId, position } : t)),
+        );
+        const updated = await api.moveToolToFolder(toolId, folderId, position);
+        setTools((prev) => prev.map((t) => (t.id === toolId ? updated : t)));
+      }),
+    [run],
+  );
+
   const handleCreateFolder = useCallback(
     (name: string, parentId: string | null) =>
       run(async () => {
@@ -442,6 +454,7 @@ const App: React.FC = () => {
         onUpdateTool={handleUpdateTool}
         onDeleteTool={handleDeleteTool}
         onReorderTools={handleReorderTools}
+        onMoveTool={handleMoveTool}
         onCreateFolder={handleCreateFolder}
         onRenameFolder={handleRenameFolder}
         onDeleteFolder={handleDeleteFolder}

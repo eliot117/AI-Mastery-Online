@@ -11,13 +11,16 @@ import {
   GripVertical,
   LogOut,
   Loader2,
+  CornerDownRight,
+  FolderInput,
 } from 'lucide-react';
 import {
   DndContext,
-  closestCenter,
+  closestCorners,
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
   DragOverlay,
   defaultDropAnimation,
   type DragEndEvent,
@@ -41,7 +44,7 @@ const SortableAppItem: React.FC<{
   tool: Tool;
   isDragging?: boolean;
   onEdit: (tool: Tool) => void;
-  onDelete: (id: string) => void;
+  onDelete: (tool: Tool) => void;
 }> = ({ tool, isDragging, onEdit, onDelete }) => {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id: tool.id });
@@ -63,8 +66,8 @@ const SortableAppItem: React.FC<{
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          className="cursor-grab touch-none rounded p-1 text-gray-700 transition-colors hover:text-gray-400 focus:outline-none active:cursor-grabbing"
-          aria-label={`Reorder ${tool.name}`}
+          className="cursor-grab touch-none rounded p-1 text-gray-600 transition-colors hover:text-purple-300 focus:outline-none active:cursor-grabbing"
+          aria-label={`Drag ${tool.name} to reorder or move to another folder`}
           tabIndex={-1}
         >
           <GripVertical size={16} />
@@ -78,7 +81,7 @@ const SortableAppItem: React.FC<{
           </p>
         </div>
       </div>
-      <div className="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      <div className="flex flex-shrink-0 gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
         <button
           onClick={() => onEdit(tool)}
           aria-label={`Edit ${tool.name}`}
@@ -87,7 +90,7 @@ const SortableAppItem: React.FC<{
           <Edit2 size={16} />
         </button>
         <button
-          onClick={() => onDelete(tool.id)}
+          onClick={() => onDelete(tool)}
           aria-label={`Delete ${tool.name}`}
           className="rounded-[14px] p-2.5 text-gray-500 transition-all hover:bg-white/10 hover:text-red-400"
         >
@@ -99,31 +102,157 @@ const SortableAppItem: React.FC<{
 };
 
 const AppDragGhost: React.FC<{ tool: Tool }> = ({ tool }) => (
-  <div className="flex scale-[1.03] items-center justify-between rounded-[24px] border border-purple-500/40 bg-[#1a1a2e] p-5 opacity-95 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(139,92,246,0.15)]">
-    <div className="flex items-center gap-4">
-      <GripVertical size={16} className="text-purple-400" />
-      <h4 className="font-sans text-lg font-black uppercase tracking-wide text-white">
-        {tool.name}
-      </h4>
-      <p className="max-w-[180px] truncate font-sans text-xs font-bold italic text-gray-500">
-        {getHostname(tool.url)}
-      </p>
-    </div>
+  <div className="flex scale-[1.03] items-center gap-4 rounded-[24px] border border-purple-500/50 bg-[#1a1a2e] p-5 opacity-95 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(139,92,246,0.25)]">
+    <GripVertical size={16} className="text-purple-400" />
+    <h4 className="font-sans text-lg font-black uppercase tracking-wide text-white">{tool.name}</h4>
+    <p className="max-w-[180px] truncate font-sans text-xs font-bold italic text-gray-500">
+      {getHostname(tool.url)}
+    </p>
   </div>
 );
 
-// ─── Sortable folder card ────────────────────────────────────────────────
+// ─── Droppable folder section (Applications tab) ─────────────────────────
+
+const FolderDropSection: React.FC<{
+  folder: Folder;
+  label: string;
+  isSub: boolean;
+  tools: Tool[];
+  viewMode: 'grid' | 'list';
+  draggingToolId: string | null;
+  draggingFromFolderId: string | null;
+  onEdit: (tool: Tool) => void;
+  onDelete: (tool: Tool) => void;
+}> = ({
+  folder,
+  label,
+  isSub,
+  tools,
+  viewMode,
+  draggingToolId,
+  draggingFromFolderId,
+  onEdit,
+  onDelete,
+}) => {
+  const { setNodeRef, isOver } = useDroppable({ id: folder.id });
+
+  const isDragActive = draggingToolId !== null;
+  // Highlighting the folder a tool already lives in would be misleading —
+  // dropping there is a reorder, not a move.
+  const isMoveTarget = isDragActive && draggingFromFolderId !== folder.id;
+  const isActiveTarget = isMoveTarget && isOver;
+
+  return (
+    <section
+      ref={setNodeRef}
+      className={`space-y-6 rounded-[28px] border-2 p-5 transition-all duration-150 ${
+        isActiveTarget
+          ? 'border-purple-400 bg-purple-500/10 shadow-[0_0_40px_rgba(139,92,246,0.35)]'
+          : isMoveTarget
+            ? 'border-dashed border-white/20 bg-white/[0.02]'
+            : 'border-transparent'
+      } ${isSub ? 'md:ml-8' : ''}`}
+    >
+      <div className="flex flex-col items-center gap-3 px-2">
+        <div className="flex items-center gap-2">
+          {isSub && <CornerDownRight size={18} className="text-purple-400/70" />}
+          <h3
+            className={`text-center font-sans font-black uppercase leading-none tracking-tighter text-white ${
+              isSub ? 'text-xl' : 'text-3xl'
+            }`}
+          >
+            {label}
+          </h3>
+        </div>
+        <div className="h-[1px] w-1/4 bg-white/10" />
+        <span
+          className={`font-sans font-black leading-none text-purple-600/40 ${
+            isSub ? 'text-2xl' : 'text-4xl'
+          }`}
+        >
+          {tools.length}
+        </span>
+
+        <AnimatePresence>
+          {isActiveTarget && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="flex items-center gap-2 rounded-full bg-purple-500 px-4 py-1.5 shadow-lg shadow-purple-500/40"
+            >
+              <FolderInput size={13} className="text-white" />
+              <span className="font-sans text-[10px] font-black uppercase tracking-widest text-white">
+                Drop to move into {folder.name}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {tools.length === 0 ? (
+        <p
+          className={`rounded-2xl border border-dashed py-6 text-center font-sans text-xs uppercase tracking-widest transition-colors ${
+            isMoveTarget ? 'border-purple-400/40 text-purple-300/70' : 'border-white/5 text-gray-600'
+          }`}
+        >
+          {isMoveTarget ? `Drop here to add to ${folder.name}` : 'Empty'}
+        </p>
+      ) : viewMode === 'grid' ? (
+        <SortableContext items={tools.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {tools.map((tool) => (
+              <SortableAppItem
+                key={tool.id}
+                tool={tool}
+                isDragging={draggingToolId === tool.id}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      ) : (
+        <div className="space-y-1 pl-4 text-center">
+          {tools.map((tool) => (
+            <div
+              key={tool.id}
+              className="cursor-default py-1 font-sans text-sm font-medium uppercase tracking-widest text-gray-400 transition-colors hover:text-white"
+            >
+              {tool.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
+
+// ─── Sortable folder card (Folders tab) ──────────────────────────────────
 
 const SortableFolderItem: React.FC<{
   folder: Folder;
   tools: Tool[];
   subFolders: Folder[];
+  subFolderToolCount: (id: string) => number;
   isDragging?: boolean;
-  isEditing: boolean;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  editingId: string | null;
+  onBeginEdit: (id: string) => void;
+  onDelete: (folder: Folder) => void;
   onRename: (id: string, name: string) => void;
-}> = ({ folder, tools, subFolders, isDragging, isEditing, onEdit, onDelete, onRename }) => {
+  onAddSubFolder: (parent: Folder) => void;
+}> = ({
+  folder,
+  tools,
+  subFolders,
+  subFolderToolCount,
+  isDragging,
+  editingId,
+  onBeginEdit,
+  onDelete,
+  onRename,
+  onAddSubFolder,
+}) => {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id: folder.id });
 
@@ -132,6 +261,21 @@ const SortableFolderItem: React.FC<{
     transition,
     opacity: isDragging ? 0 : 1,
   };
+
+  const renameField = (target: Folder, isSubRow: boolean) => (
+    <input
+      autoFocus
+      defaultValue={target.name}
+      onBlur={(e) => onRename(target.id, e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onRename(target.id, e.currentTarget.value);
+        if (e.key === 'Escape') onRename(target.id, target.name);
+      }}
+      className={`w-full rounded-lg border-b border-purple-500 bg-transparent px-2 font-sans font-black uppercase tracking-widest text-white focus:outline-none ${
+        isSubRow ? 'text-sm' : 'mr-4 text-xl'
+      }`}
+    />
+  );
 
   return (
     <div
@@ -145,23 +289,14 @@ const SortableFolderItem: React.FC<{
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
-            className="flex-shrink-0 cursor-grab touch-none rounded p-1 text-gray-700 transition-colors group-hover:text-gray-500 focus:outline-none active:cursor-grabbing"
+            className="flex-shrink-0 cursor-grab touch-none rounded p-1 text-gray-700 transition-colors focus:outline-none active:cursor-grabbing group-hover:text-gray-500"
             aria-label={`Reorder ${folder.name}`}
             tabIndex={-1}
           >
             <GripVertical size={16} />
           </button>
-          {isEditing ? (
-            <input
-              autoFocus
-              defaultValue={folder.name}
-              onBlur={(e) => onRename(folder.id, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onRename(folder.id, e.currentTarget.value);
-                if (e.key === 'Escape') onRename(folder.id, folder.name);
-              }}
-              className="mr-4 w-full rounded-[24px] border-b border-purple-500 bg-transparent px-2 font-sans text-xl font-black uppercase tracking-widest text-white focus:outline-none"
-            />
+          {editingId === folder.id ? (
+            renameField(folder, false)
           ) : (
             <h4 className="truncate font-sans text-xl font-black uppercase leading-none tracking-widest text-white">
               {folder.name}
@@ -170,14 +305,14 @@ const SortableFolderItem: React.FC<{
         </div>
         <div className="ml-2 flex flex-shrink-0 gap-1">
           <button
-            onClick={() => onEdit(folder.id)}
+            onClick={() => onBeginEdit(folder.id)}
             aria-label={`Rename ${folder.name}`}
             className="rounded-[14px] p-2 text-gray-500 transition-all hover:bg-white/10 hover:text-white"
           >
             <Edit2 size={16} />
           </button>
           <button
-            onClick={() => onDelete(folder.id)}
+            onClick={() => onDelete(folder)}
             aria-label={`Delete ${folder.name}`}
             className="rounded-[14px] p-2 text-gray-500 transition-all hover:bg-white/10 hover:text-red-500"
           >
@@ -186,20 +321,63 @@ const SortableFolderItem: React.FC<{
         </div>
       </div>
 
-      {subFolders.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {subFolders.map((sf) => (
-            <span
-              key={sf.id}
-              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-sans text-[9px] font-bold uppercase tracking-widest text-gray-400"
-            >
-              {sf.name}
-            </span>
-          ))}
+      {/* Sub-folders are managed here, alongside the parent they belong to. */}
+      <div className="mt-6 space-y-1.5">
+        <div className="flex items-center justify-between px-1">
+          <span className="font-sans text-[9px] font-black uppercase tracking-[0.2em] text-gray-500">
+            Sub-folders
+          </span>
+          <button
+            onClick={() => onAddSubFolder(folder)}
+            className="flex items-center gap-1 rounded-full px-2 py-1 font-sans text-[9px] font-bold uppercase tracking-widest text-purple-300 transition-all hover:bg-purple-500/15 hover:text-purple-200"
+          >
+            <Plus size={11} /> Add
+          </button>
         </div>
-      )}
 
-      <div className="mt-8 flex items-center justify-between">
+        {subFolders.length === 0 ? (
+          <p className="px-1 font-sans text-[10px] italic text-gray-600">None yet</p>
+        ) : (
+          subFolders.map((sub) => (
+            <div
+              key={sub.id}
+              className="flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/20 px-2.5 py-1.5"
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <CornerDownRight size={12} className="flex-shrink-0 text-purple-400/70" />
+                {editingId === sub.id ? (
+                  renameField(sub, true)
+                ) : (
+                  <span className="truncate font-sans text-[11px] font-bold uppercase tracking-widest text-gray-300">
+                    {sub.name}
+                  </span>
+                )}
+              </div>
+              <span className="flex-shrink-0 font-sans text-[10px] font-bold text-purple-400/60">
+                {subFolderToolCount(sub.id)}
+              </span>
+              <div className="flex flex-shrink-0 gap-0.5">
+                <button
+                  onClick={() => onBeginEdit(sub.id)}
+                  aria-label={`Rename ${sub.name}`}
+                  className="rounded-lg p-1 text-gray-600 transition-all hover:bg-white/10 hover:text-white"
+                >
+                  <Edit2 size={12} />
+                </button>
+                <button
+                  onClick={() => onDelete(sub)}
+                  aria-label={`Delete ${sub.name}`}
+                  className="rounded-lg p-1 text-gray-600 transition-all hover:bg-white/10 hover:text-red-400"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
         <div className="flex -space-x-3">
           {tools.slice(0, 5).map((t) => {
             const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
@@ -261,6 +439,7 @@ interface ManageOverlayProps {
   onUpdateTool: (id: string, patch: Partial<Tool>) => Promise<void>;
   onDeleteTool: (id: string) => Promise<void>;
   onReorderTools: (orderedIds: string[]) => Promise<void>;
+  onMoveTool: (toolId: string, folderId: string, position: number) => Promise<void>;
   onCreateFolder: (name: string, parentId: string | null) => Promise<void>;
   onRenameFolder: (id: string, name: string) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
@@ -279,6 +458,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   onUpdateTool,
   onDeleteTool,
   onReorderTools,
+  onMoveTool,
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
@@ -292,7 +472,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<
-    { type: 'app' | 'folder'; id: string; label: string } | null
+    { type: 'app' | 'folder'; id: string; label: string; extra?: string } | null
   >(null);
 
   const [newName, setNewName] = useState('');
@@ -303,19 +483,35 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderParent, setNewFolderParent] = useState('');
 
-  const [activeDragAppId, setActiveDragAppId] = useState<string | null>(null);
-  const [activeDragFolderId, setActiveDragFolderId] = useState<string | null>(null);
+  const [draggingToolId, setDraggingToolId] = useState<string | null>(null);
+  const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const folderNameRef = useRef<HTMLInputElement>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // ── Derived ──────────────────────────────────────────────────────────
+
+  const foldersById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
 
   const topLevelFolders = useMemo(
-    () => folders.filter((f) => f.parent_folder_id === null),
+    () =>
+      folders.filter((f) => f.parent_folder_id === null).sort((a, b) => a.position - b.position),
     [folders],
   );
+
+  const subFoldersByParent = useMemo(() => {
+    const map = new Map<string, Folder[]>();
+    for (const f of folders) {
+      if (!f.parent_folder_id) continue;
+      const list = map.get(f.parent_folder_id);
+      if (list) list.push(f);
+      else map.set(f.parent_folder_id, [f]);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.position - b.position);
+    return map;
+  }, [folders]);
 
   const toolsByFolder = useMemo(() => {
     const map = new Map<string, Tool[]>();
@@ -328,40 +524,28 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     return map;
   }, [tools]);
 
-  const subFoldersByParent = useMemo(() => {
-    const map = new Map<string, Folder[]>();
-    for (const f of folders) {
-      if (!f.parent_folder_id) continue;
-      const list = map.get(f.parent_folder_id);
-      if (list) list.push(f);
-      else map.set(f.parent_folder_id, [f]);
-    }
-    return map;
-  }, [folders]);
+  const toolsIn = (id: string) => toolsByFolder.get(id) ?? [];
 
-  /** "Build / Web Apps" — makes the folder picker unambiguous when nested. */
-  const folderLabel = useMemo(() => {
-    const byId = new Map(folders.map((f) => [f.id, f]));
-    return (f: Folder) => {
-      const parent = f.parent_folder_id ? byId.get(f.parent_folder_id) : null;
-      return parent ? `${parent.name} / ${f.name}` : f.name;
-    };
-  }, [folders]);
-
-  const orderedFolderOptions = useMemo(() => {
-    const out: Folder[] = [];
+  /** Parent-then-children, so the Applications tab reads as a tree. */
+  const orderedFolders = useMemo(() => {
+    const out: { folder: Folder; isSub: boolean; label: string }[] = [];
     for (const top of topLevelFolders) {
-      out.push(top);
-      for (const sub of subFoldersByParent.get(top.id) ?? []) out.push(sub);
+      out.push({ folder: top, isSub: false, label: top.name });
+      for (const sub of subFoldersByParent.get(top.id) ?? []) {
+        out.push({ folder: sub, isSub: true, label: `${top.name} / ${sub.name}` });
+      }
     }
     return out;
   }, [topLevelFolders, subFoldersByParent]);
 
+  const draggingTool = draggingToolId ? (tools.find((t) => t.id === draggingToolId) ?? null) : null;
+  const draggingFolder = draggingFolderId ? (foldersById.get(draggingFolderId) ?? null) : null;
+
   useEffect(() => {
-    if (!newToolFolderId && orderedFolderOptions.length) {
-      setNewToolFolderId(orderedFolderOptions[0].id);
+    if (!newToolFolderId && orderedFolders.length) {
+      setNewToolFolderId(orderedFolders[0].folder.id);
     }
-  }, [orderedFolderOptions, newToolFolderId]);
+  }, [orderedFolders, newToolFolderId]);
 
   useEffect(() => {
     if (editingTool && scrollRef.current) {
@@ -369,7 +553,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     }
   }, [editingTool]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────
+
+  const switchTab = (tab: 'apps' | 'folders') => {
+    if (activeTab === tab) return;
+    setDirection(tab === 'folders' ? 1 : -1);
+    setActiveTab(tab);
+  };
 
   const resetToolForm = () => {
     setNewName('');
@@ -392,13 +582,12 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     }
 
     if (!newName.trim() || !newUrl.trim() || !newToolFolderId) return;
-    const siblings = toolsByFolder.get(newToolFolderId) ?? [];
     await onCreateTool({
       folder_id: newToolFolderId,
       name: newName,
       url: newUrl,
       logo_url: newLogo.trim() || null,
-      position: siblings.length,
+      position: toolsIn(newToolFolderId).length,
     });
     resetToolForm();
   };
@@ -411,35 +600,82 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     setNewFolderParent('');
   };
 
-  const handleAppDragEnd = (event: DragEndEvent, folderTools: Tool[]) => {
-    setActiveDragAppId(null);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = folderTools.findIndex((t) => t.id === active.id);
-    const newIndex = folderTools.findIndex((t) => t.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    void onReorderTools(arrayMove(folderTools, oldIndex, newIndex).map((t) => t.id));
+  /** Jumps to the create form with the parent pre-selected and focused. */
+  const startSubFolder = (parent: Folder) => {
+    setNewFolderParent(parent.id);
+    setNewFolderName('');
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.setTimeout(() => folderNameRef.current?.focus(), 200);
   };
 
-  const handleFolderDragEnd = (event: DragEndEvent) => {
-    setActiveDragFolderId(null);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const ids = topLevelFolders.map((f) => f.id);
-    const oldIndex = ids.indexOf(active.id as string);
-    const newIndex = ids.indexOf(over.id as string);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    void onReorderFolders(arrayMove(ids, oldIndex, newIndex));
+  const handleDragStart = (event: DragStartEvent) => {
+    const id = event.active.id as string;
+    if (foldersById.has(id)) setDraggingFolderId(id);
+    else setDraggingToolId(id);
   };
 
-  const switchTab = (tab: 'apps' | 'folders') => {
-    if (activeTab === tab) return;
-    setDirection(tab === 'folders' ? 1 : -1);
-    setActiveTab(tab);
+  /** `over` can be a folder container or another tool — resolve either. */
+  const resolveTargetFolderId = (overId: string): string | null => {
+    if (foldersById.has(overId)) return overId;
+    return tools.find((t) => t.id === overId)?.folder_id ?? null;
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    const activeId = active.id as string;
+    const wasTool = draggingToolId !== null;
+
+    setDraggingToolId(null);
+    setDraggingFolderId(null);
+
+    if (!over) return;
+    const overId = over.id as string;
+
+    // Reordering top-level folder cards.
+    if (!wasTool) {
+      if (activeId === overId) return;
+      const ids = topLevelFolders.map((f) => f.id);
+      const from = ids.indexOf(activeId);
+      const to = ids.indexOf(overId);
+      if (from === -1 || to === -1) return;
+      void onReorderFolders(arrayMove(ids, from, to));
+      return;
+    }
+
+    const tool = tools.find((t) => t.id === activeId);
+    if (!tool) return;
+
+    const targetFolderId = resolveTargetFolderId(overId);
+    if (!targetFolderId) return;
+
+    if (targetFolderId === tool.folder_id) {
+      // Same folder: a reorder.
+      if (activeId === overId) return;
+      const siblings = toolsIn(tool.folder_id);
+      const from = siblings.findIndex((t) => t.id === activeId);
+      const to = siblings.findIndex((t) => t.id === overId);
+      if (from === -1 || to === -1) return;
+      void onReorderTools(arrayMove(siblings, from, to).map((t) => t.id));
+      return;
+    }
+
+    // Different folder: a move, appended to the end of the destination.
+    void onMoveTool(activeId, targetFolderId, toolsIn(targetFolderId).length);
+  };
+
+  const requestDeleteFolder = (folder: Folder) => {
+    const subs = subFoldersByParent.get(folder.id) ?? [];
+    const toolCount =
+      toolsIn(folder.id).length + subs.reduce((sum, s) => sum + toolsIn(s.id).length, 0);
+    const parts: string[] = [];
+    if (subs.length) parts.push(`${subs.length} sub-folder${subs.length > 1 ? 's' : ''}`);
+    if (toolCount) parts.push(`${toolCount} tool${toolCount > 1 ? 's' : ''}`);
+    setConfirmDelete({
+      type: 'folder',
+      id: folder.id,
+      label: folder.name,
+      extra: parts.length ? parts.join(' and ') : undefined,
+    });
   };
 
   const confirmDeleteNow = async () => {
@@ -456,16 +692,9 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   };
 
   const actionButtonClass =
-    'w-44 h-11 flex flex-shrink-0 items-center justify-center rounded-[24px] bg-gradient-to-r from-purple-600 to-blue-600 font-sans text-[10px] font-black uppercase tracking-widest text-white transition-all hover:shadow-xl disabled:opacity-50';
+    'h-11 w-44 flex flex-shrink-0 items-center justify-center rounded-[24px] bg-gradient-to-r from-purple-600 to-blue-600 font-sans text-[10px] font-black uppercase tracking-widest text-white transition-all hover:shadow-xl disabled:opacity-50';
   const inputClass =
     'h-11 w-full rounded-[24px] border border-white/10 bg-white/5 px-5 py-3 font-sans text-sm text-white transition-all placeholder:text-gray-600 focus:border-purple-500/50 focus:outline-none';
-
-  const activeDragTool = activeDragAppId
-    ? (tools.find((t) => t.id === activeDragAppId) ?? null)
-    : null;
-  const activeDragFolder = activeDragFolderId
-    ? (folders.find((f) => f.id === activeDragFolderId) ?? null)
-    : null;
 
   return (
     <AnimatePresence>
@@ -591,7 +820,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                   ref={scrollRef}
                 >
                   {activeTab === 'apps' ? (
-                    <div className="space-y-12">
+                    <div className="space-y-10">
                       {viewMode === 'grid' && (
                         <section className="rounded-[24px] border border-white/5 bg-white/5 p-4">
                           <h3 className="mb-4 flex items-center gap-2 font-sans text-[10px] font-black uppercase tracking-[0.3em] text-purple-400">
@@ -632,9 +861,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                               placeholder="Logo link (optional)"
                               aria-label="Logo image link, optional"
                               className={`${inputClass} flex-1`}
-                              value={
-                                editingTool ? (editingTool.logo_url ?? '') : newLogo
-                              }
+                              value={editingTool ? (editingTool.logo_url ?? '') : newLogo}
                               onChange={(e) =>
                                 editingTool
                                   ? setEditingTool({
@@ -654,9 +881,9 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                   : setNewToolFolderId(e.target.value)
                               }
                             >
-                              {orderedFolderOptions.map((f) => (
-                                <option key={f.id} value={f.id} className="bg-[#0f172a]">
-                                  {folderLabel(f)}
+                              {orderedFolders.map(({ folder, label, isSub }) => (
+                                <option key={folder.id} value={folder.id} className="bg-[#0f172a]">
+                                  {isSub ? `↳ ${label}` : label}
                                 </option>
                               ))}
                             </select>
@@ -677,94 +904,65 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                             </div>
                           </form>
                           <p className="mt-3 px-2 font-sans text-[11px] leading-relaxed text-gray-500">
-                            Leave the logo blank and we'll fetch the site's own icon
-                            automatically.
+                            Leave the logo blank and we'll fetch the site's own icon automatically.
                           </p>
                         </section>
                       )}
 
-                      <div className="space-y-12">
-                        {orderedFolderOptions.map((folder) => {
-                          const folderTools = toolsByFolder.get(folder.id) ?? [];
-                          return (
-                            <div key={folder.id} className="space-y-6">
-                              <div className="flex flex-col items-center gap-4 px-2">
-                                <h3 className="text-center font-sans text-3xl font-black uppercase leading-none tracking-tighter text-white">
-                                  {folderLabel(folder)}
-                                </h3>
-                                <div className="h-[1px] w-1/4 bg-white/10" />
-                                <span className="font-sans text-4xl font-black leading-none text-purple-600/40">
-                                  {folderTools.length}
-                                </span>
-                              </div>
-
-                              {folderTools.length === 0 ? (
-                                <p className="text-center font-sans text-xs uppercase tracking-widest text-gray-600">
-                                  Empty
-                                </p>
-                              ) : viewMode === 'grid' ? (
-                                <DndContext
-                                  sensors={sensors}
-                                  collisionDetection={closestCenter}
-                                  onDragStart={(e: DragStartEvent) =>
-                                    setActiveDragAppId(e.active.id as string)
-                                  }
-                                  onDragEnd={(e) => handleAppDragEnd(e, folderTools)}
-                                >
-                                  <SortableContext
-                                    items={folderTools.map((t) => t.id)}
-                                    strategy={verticalListSortingStrategy}
-                                  >
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                      {folderTools.map((tool) => (
-                                        <SortableAppItem
-                                          key={tool.id}
-                                          tool={tool}
-                                          isDragging={activeDragAppId === tool.id}
-                                          onEdit={setEditingTool}
-                                          onDelete={(id) =>
-                                            setConfirmDelete({
-                                              type: 'app',
-                                              id,
-                                              label: tool.name,
-                                            })
-                                          }
-                                        />
-                                      ))}
-                                    </div>
-                                  </SortableContext>
-                                  <DragOverlay dropAnimation={defaultDropAnimation}>
-                                    {activeDragTool &&
-                                    folderTools.some((t) => t.id === activeDragTool.id) ? (
-                                      <AppDragGhost tool={activeDragTool} />
-                                    ) : null}
-                                  </DragOverlay>
-                                </DndContext>
-                              ) : (
-                                <div className="space-y-1 pl-4 text-center">
-                                  {folderTools.map((tool) => (
-                                    <div
-                                      key={tool.id}
-                                      className="cursor-default py-1 font-sans text-sm font-medium uppercase tracking-widest text-gray-400 transition-colors hover:text-white"
-                                    >
-                                      {tool.name}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                      <div className="flex items-center gap-2 rounded-2xl border border-purple-500/20 bg-purple-500/5 px-4 py-3">
+                        <FolderInput size={14} className="flex-shrink-0 text-purple-400" />
+                        <p className="font-sans text-[11px] leading-relaxed text-gray-400">
+                          Drag a tool by its handle onto any folder below — including
+                          <span className="text-purple-300"> sub-folders</span> — to move it there.
+                          Drop it among a folder's own tools to reorder instead.
+                        </p>
                       </div>
+
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCorners}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <div className="space-y-6">
+                          {orderedFolders.map(({ folder, isSub, label }) => (
+                            <FolderDropSection
+                              key={folder.id}
+                              folder={folder}
+                              label={label}
+                              isSub={isSub}
+                              tools={toolsIn(folder.id)}
+                              viewMode={viewMode}
+                              draggingToolId={draggingToolId}
+                              draggingFromFolderId={draggingTool?.folder_id ?? null}
+                              onEdit={setEditingTool}
+                              onDelete={(tool) =>
+                                setConfirmDelete({ type: 'app', id: tool.id, label: tool.name })
+                              }
+                            />
+                          ))}
+                        </div>
+
+                        <DragOverlay dropAnimation={defaultDropAnimation}>
+                          {draggingTool ? <AppDragGhost tool={draggingTool} /> : null}
+                        </DragOverlay>
+                      </DndContext>
                     </div>
                   ) : (
                     <div className="space-y-12">
                       <section className="rounded-[24px] border border-white/5 bg-white/5 p-4">
                         <h3 className="mb-4 flex items-center gap-2 font-sans text-[10px] font-black uppercase tracking-[0.3em] text-purple-400">
-                          <FolderPlus size={14} /> New folder
+                          <FolderPlus size={14} />{' '}
+                          {newFolderParent
+                            ? `New sub-folder in ${foldersById.get(newFolderParent)?.name ?? ''}`
+                            : 'New folder'}
                         </h3>
-                        <form onSubmit={submitFolder} className="flex flex-col items-center gap-2 md:flex-row">
+                        <form
+                          onSubmit={submitFolder}
+                          className="flex flex-col items-center gap-2 md:flex-row"
+                        >
                           <input
+                            ref={folderNameRef}
                             type="text"
                             placeholder="Folder name"
                             aria-label="Folder name"
@@ -783,7 +981,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                             </option>
                             {topLevelFolders.map((f) => (
                               <option key={f.id} value={f.id} className="bg-[#0f172a]">
-                                Inside {f.name}
+                                {`↳ Inside ${f.name}`}
                               </option>
                             ))}
                           </select>
@@ -800,11 +998,9 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
                         <DndContext
                           sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragStart={(e: DragStartEvent) =>
-                            setActiveDragFolderId(e.active.id as string)
-                          }
-                          onDragEnd={handleFolderDragEnd}
+                          collisionDetection={closestCorners}
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
                         >
                           <SortableContext
                             items={topLevelFolders.map((f) => f.id)}
@@ -815,33 +1011,30 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                 <SortableFolderItem
                                   key={folder.id}
                                   folder={folder}
-                                  tools={toolsByFolder.get(folder.id) ?? []}
+                                  tools={toolsIn(folder.id)}
                                   subFolders={subFoldersByParent.get(folder.id) ?? []}
-                                  isDragging={activeDragFolderId === folder.id}
-                                  isEditing={editingFolderId === folder.id}
-                                  onEdit={setEditingFolderId}
-                                  onDelete={(id) =>
-                                    setConfirmDelete({
-                                      type: 'folder',
-                                      id,
-                                      label: folder.name,
-                                    })
-                                  }
+                                  subFolderToolCount={(id) => toolsIn(id).length}
+                                  isDragging={draggingFolderId === folder.id}
+                                  editingId={editingFolderId}
+                                  onBeginEdit={setEditingFolderId}
+                                  onDelete={requestDeleteFolder}
                                   onRename={(id, name) => {
                                     setEditingFolderId(null);
-                                    if (name.trim() && name !== folder.name) {
+                                    const current = foldersById.get(id);
+                                    if (name.trim() && current && name !== current.name) {
                                       void onRenameFolder(id, name);
                                     }
                                   }}
+                                  onAddSubFolder={startSubFolder}
                                 />
                               ))}
                             </div>
                           </SortableContext>
                           <DragOverlay dropAnimation={defaultDropAnimation}>
-                            {activeDragFolder ? (
+                            {draggingFolder ? (
                               <FolderDragGhost
-                                folder={activeDragFolder}
-                                count={(toolsByFolder.get(activeDragFolder.id) ?? []).length}
+                                folder={draggingFolder}
+                                count={toolsIn(draggingFolder.id).length}
                               />
                             ) : null}
                           </DragOverlay>
@@ -876,8 +1069,14 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                     <p className="mb-8 font-sans text-sm leading-relaxed text-gray-400">
                       <span className="font-bold text-white">{confirmDelete.label}</span> will be
                       removed from your library.
-                      {confirmDelete.type === 'folder' &&
-                        ' Everything inside it goes too.'}{' '}
+                      {confirmDelete.extra && (
+                        <>
+                          {' '}
+                          Its{' '}
+                          <span className="font-bold text-red-300">{confirmDelete.extra}</span> will
+                          be deleted too.
+                        </>
+                      )}{' '}
                       This can't be undone.
                     </p>
                     <div className="flex gap-4">
