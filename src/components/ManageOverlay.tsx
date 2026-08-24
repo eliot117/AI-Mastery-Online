@@ -158,8 +158,16 @@ const FolderDropSection: React.FC<{
             : 'border-transparent'
       } ${isSub ? 'md:ml-8' : ''}`}
     >
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-1">
-        <div className="flex items-center gap-1.5">
+      <div className="relative min-h-[64px] px-1">
+        <div className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center gap-3">
+          <button
+            onClick={() => onAddTool(folder.id)}
+            aria-label={`Add a tool to ${folder.name}`}
+            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-2.5 text-white transition-all hover:shadow-[0_0_20px_rgba(139,92,246,0.5)]"
+          >
+            <Plus size={19} />
+            <span className="font-sans text-xs font-black uppercase tracking-widest">Add</span>
+          </button>
           {folder.origin_folder_id && (
             <button
               onClick={() => onRequestReset(folder)}
@@ -170,28 +178,24 @@ const FolderDropSection: React.FC<{
               <RotateCcw size={17} />
             </button>
           )}
-          <button
-            onClick={() => onAddTool(folder.id)}
-            aria-label={`Add a tool to ${folder.name}`}
-            title="Add a tool here"
-            className="flex items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white transition-all hover:shadow-[0_0_16px_rgba(139,92,246,0.5)]"
-          >
-            <Plus size={17} />
-          </button>
         </div>
 
-        <div className="flex min-w-0 items-center justify-center gap-1.5">
-          {isSub && <CornerDownRight size={16} className="flex-shrink-0 text-purple-400/70" />}
+        <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center justify-center gap-2 px-40">
+          {isSub && <CornerDownRight size={22} className="flex-shrink-0 text-purple-400/70" />}
           <h3
             className={`truncate font-sans font-black uppercase leading-none tracking-tighter text-white ${
-              isSub ? 'text-lg' : 'text-2xl'
+              isSub ? 'text-2xl' : 'text-4xl'
             }`}
           >
             {label}
           </h3>
         </div>
 
-        <span className="justify-self-end font-sans text-sm font-bold tabular-nums text-purple-400/70">
+        <span
+          className={`absolute right-0 top-1/2 -translate-y-1/2 font-sans font-black leading-none tabular-nums text-purple-600/40 ${
+            isSub ? 'text-2xl' : 'text-4xl'
+          }`}
+        >
           {tools.length}
         </span>
       </div>
@@ -1227,36 +1231,36 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-md"
+                  className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
                 >
                   <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
                     role="alertdialog"
                     aria-modal="true"
-                    className="max-w-sm rounded-[32px] border border-white/10 bg-[#0f172a] p-10 text-center shadow-2xl"
+                    className="w-full max-w-sm rounded-[28px] border border-white/10 bg-[#12131a] p-6 text-center shadow-2xl"
                   >
-                    <RotateCcw size={40} className="mx-auto mb-6 text-amber-400" />
-                    <h3 className="mb-2 font-sans text-xl font-black uppercase tracking-tight">
+                    <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600">
+                      <RotateCcw size={24} className="text-white" />
+                    </span>
+                    <h3 className="mb-2 font-sans text-lg font-black uppercase tracking-tight text-white">
                       Reset {confirmReset.name}?
                     </h3>
-                    <p className="mb-8 font-sans text-sm leading-relaxed text-gray-400">
-                      This discards every edit you've made in{' '}
-                      <span className="font-bold text-white">{confirmReset.name}</span> — added,
-                      removed, or renamed tools, and any reordering — and restores it to the current
-                      admin-curated version. This can't be undone.
+                    <p className="mb-6 font-sans text-sm leading-relaxed text-gray-400">
+                      Discards your changes and restores the default version. Can't be undone.
                     </p>
-                    <div className="flex gap-4">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => setConfirmReset(null)}
-                        className="flex-1 rounded-[24px] bg-white/5 px-6 py-4 font-sans text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
+                        className="flex-1 rounded-2xl bg-white/5 py-3.5 font-sans text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={confirmResetNow}
                         disabled={resetting}
-                        className="flex-1 rounded-[24px] bg-amber-600 px-6 py-4 font-sans text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-amber-600/20 transition-all hover:bg-amber-500 disabled:opacity-50"
+                        className="flex-1 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 py-3.5 font-sans text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-purple-600/20 transition-all hover:shadow-purple-600/40 disabled:opacity-50"
                       >
                         Reset
                       </button>
