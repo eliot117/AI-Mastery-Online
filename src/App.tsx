@@ -292,6 +292,23 @@ const App: React.FC = () => {
   );
 
   /**
+   * The reset itself is a single atomic DB call, but the resulting set of
+   * tool ids in this folder is unknowable client-side in advance -- easiest
+   * correct approach is to let the server do it, then pull the fresh truth
+   * for just this folder rather than optimistically guessing its new state.
+   */
+  const handleResetFolder = useCallback(
+    (folderId: string) =>
+      run(async () => {
+        await api.resetFolderToBase(folderId);
+        const fresh = await api.fetchLibrary();
+        setFolders(fresh.folders);
+        setTools(fresh.tools);
+      }),
+    [run],
+  );
+
+  /**
    * The anchor itself opens the destination in a new tab — this only logs
    * the click and plays a brief flourish, so popup blockers never see a
    * scripted window open and the tab stays on AI Mastery.
@@ -473,7 +490,9 @@ const App: React.FC = () => {
         onRenameFolder={handleRenameFolder}
         onDeleteFolder={handleDeleteFolder}
         onReorderFolders={handleReorderFolders}
+        onResetFolder={handleResetFolder}
         onSignOut={() => void signOut()}
+
       />
 
       <AnimatePresence>

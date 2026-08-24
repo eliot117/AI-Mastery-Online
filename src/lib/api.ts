@@ -207,6 +207,18 @@ export async function reorderFolders(orderedIds: string[]): Promise<void> {
   );
 }
 
+/**
+ * Discards every edit made in this exact folder (renamed, added, deleted, or
+ * reordered tools) and restores it to whatever the base template currently
+ * has. Nested sub-folders are untouched — each resets independently. Runs
+ * as a single Postgres function so the delete-then-reclone can't be seen
+ * half-done, and RLS still enforces the caller can only reset their own row.
+ */
+export async function resetFolderToBase(folderId: string): Promise<void> {
+  const { error } = await supabase.rpc('reset_folder_to_base', { p_folder_id: folderId });
+  if (error) throw error;
+}
+
 // ─── Usage ───────────────────────────────────────────────────────────────
 
 /**

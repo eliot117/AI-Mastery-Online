@@ -23,6 +23,9 @@ export interface Folder {
   parent_folder_id: string | null;
   name: string;
   position: number;
+  /** The base-template folder this was cloned from, if any. Lets "reset to
+   * default" find its target even after the folder has been renamed. */
+  origin_folder_id: string | null;
 }
 
 export interface Tool {
@@ -35,6 +38,7 @@ export interface Tool {
   icon: string | null;
   logo_url: string | null;
   position: number;
+  origin_tool_id: string | null;
 }
 
 /** A single renderable object on the orbit ring. */

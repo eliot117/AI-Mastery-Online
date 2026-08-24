@@ -13,6 +13,7 @@ import {
   Loader2,
   CornerDownRight,
   FolderInput,
+  RotateCcw,
 } from 'lucide-react';
 import {
   DndContext,
@@ -123,6 +124,8 @@ const FolderDropSection: React.FC<{
   draggingFromFolderId: string | null;
   onEdit: (tool: Tool) => void;
   onDelete: (tool: Tool) => void;
+  onAddTool: (folderId: string) => void;
+  onRequestReset: (folder: Folder) => void;
 }> = ({
   folder,
   label,
@@ -133,6 +136,8 @@ const FolderDropSection: React.FC<{
   draggingFromFolderId,
   onEdit,
   onDelete,
+  onAddTool,
+  onRequestReset,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: folder.id });
 
@@ -145,7 +150,7 @@ const FolderDropSection: React.FC<{
   return (
     <section
       ref={setNodeRef}
-      className={`space-y-6 rounded-[28px] border-2 p-5 transition-all duration-150 ${
+      className={`space-y-5 rounded-[28px] border-2 p-5 transition-all duration-150 ${
         isActiveTarget
           ? 'border-purple-400 bg-purple-500/10 shadow-[0_0_40px_rgba(139,92,246,0.35)]'
           : isMoveTarget
@@ -153,42 +158,59 @@ const FolderDropSection: React.FC<{
             : 'border-transparent'
       } ${isSub ? 'md:ml-8' : ''}`}
     >
-      <div className="flex flex-col items-center gap-3 px-2">
-        <div className="flex items-center gap-2">
-          {isSub && <CornerDownRight size={18} className="text-purple-400/70" />}
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-1">
+        <div className="flex items-center gap-1.5">
+          {folder.origin_folder_id && (
+            <button
+              onClick={() => onRequestReset(folder)}
+              aria-label={`Reset ${folder.name} to the default template`}
+              title="Reset to default"
+              className="rounded-full p-2 text-purple-400 transition-all hover:bg-purple-400/10"
+            >
+              <RotateCcw size={17} />
+            </button>
+          )}
+          <button
+            onClick={() => onAddTool(folder.id)}
+            aria-label={`Add a tool to ${folder.name}`}
+            title="Add a tool here"
+            className="flex items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white transition-all hover:shadow-[0_0_16px_rgba(139,92,246,0.5)]"
+          >
+            <Plus size={17} />
+          </button>
+        </div>
+
+        <div className="flex min-w-0 items-center justify-center gap-1.5">
+          {isSub && <CornerDownRight size={16} className="flex-shrink-0 text-purple-400/70" />}
           <h3
-            className={`text-center font-sans font-black uppercase leading-none tracking-tighter text-white ${
-              isSub ? 'text-xl' : 'text-3xl'
+            className={`truncate font-sans font-black uppercase leading-none tracking-tighter text-white ${
+              isSub ? 'text-lg' : 'text-2xl'
             }`}
           >
             {label}
           </h3>
         </div>
-        <div className="h-[1px] w-1/4 bg-white/10" />
-        <span
-          className={`font-sans font-black leading-none text-purple-600/40 ${
-            isSub ? 'text-2xl' : 'text-4xl'
-          }`}
-        >
+
+        <span className="justify-self-end font-sans text-sm font-bold tabular-nums text-purple-400/70">
           {tools.length}
         </span>
-
-        <AnimatePresence>
-          {isActiveTarget && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              className="flex items-center gap-2 rounded-full bg-purple-500 px-4 py-1.5 shadow-lg shadow-purple-500/40"
-            >
-              <FolderInput size={13} className="text-white" />
-              <span className="font-sans text-[10px] font-black uppercase tracking-widest text-white">
-                Drop to move into {folder.name}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {isActiveTarget && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="mx-auto flex w-fit items-center gap-2 rounded-full bg-purple-500 px-4 py-1.5 shadow-lg shadow-purple-500/40"
+          >
+            <FolderInput size={13} className="text-white" />
+            <span className="font-sans text-[10px] font-black uppercase tracking-widest text-white">
+              Drop to move into {folder.name}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {tools.length === 0 ? (
         <p
@@ -426,6 +448,161 @@ const FolderDragGhost: React.FC<{ folder: Folder; count: number }> = ({ folder, 
   </div>
 );
 
+// ─── Add / edit tool popup ────────────────────────────────────────────────
+
+interface ToolFormModalProps {
+  isOpen: boolean;
+  isEditing: boolean;
+  busy: boolean;
+  name: string;
+  url: string;
+  logoUrl: string;
+  folderId: string;
+  folderOptions: { folder: Folder; label: string; isSub: boolean }[];
+  onNameChange: (v: string) => void;
+  onUrlChange: (v: string) => void;
+  onLogoChange: (v: string) => void;
+  onFolderChange: (v: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onClose: () => void;
+}
+
+const ToolFormModal: React.FC<ToolFormModalProps> = ({
+  isOpen,
+  isEditing,
+  busy,
+  name,
+  url,
+  logoUrl,
+  folderId,
+  folderOptions,
+  onNameChange,
+  onUrlChange,
+  onLogoChange,
+  onFolderChange,
+  onSubmit,
+  onClose,
+}) => {
+  const fieldClass =
+    'h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-5 font-sans text-sm text-white transition-all placeholder:text-gray-600 focus:border-purple-500/50 focus:outline-none';
+  const labelClass = 'mb-2 block font-sans text-[10px] font-black uppercase tracking-widest text-gray-500';
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 16, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.95, y: 16, opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={isEditing ? 'Edit tool' : 'Add a tool'}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-[32px] border border-white/10 bg-[#12131a] p-8 shadow-2xl"
+          >
+            <div className="mb-7 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 font-sans text-lg font-black uppercase tracking-wide text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600">
+                  <Plus size={16} className="text-white" />
+                </span>
+                {isEditing ? 'Edit tool' : 'Add a tool'}
+              </h3>
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                className="rounded-full p-2 text-gray-500 transition-all hover:bg-white/10 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={onSubmit} className="space-y-5">
+              <div>
+                <label className={labelClass}>Name</label>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="e.g. ChatGPT"
+                  aria-label="Tool name"
+                  className={fieldClass}
+                  value={name}
+                  onChange={(e) => onNameChange(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Web address</label>
+                <input
+                  type="text"
+                  inputMode="url"
+                  placeholder="https://..."
+                  aria-label="Tool web address"
+                  className={fieldClass}
+                  value={url}
+                  onChange={(e) => onUrlChange(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Logo link (optional)</label>
+                <input
+                  type="text"
+                  inputMode="url"
+                  placeholder="Leave blank to auto-fetch the site's icon"
+                  aria-label="Logo image link, optional"
+                  className={fieldClass}
+                  value={logoUrl}
+                  onChange={(e) => onLogoChange(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Folder</label>
+                <select
+                  aria-label="Folder"
+                  className={`${fieldClass} cursor-pointer`}
+                  value={folderId}
+                  onChange={(e) => onFolderChange(e.target.value)}
+                >
+                  {folderOptions.map(({ folder, label, isSub }) => (
+                    <option key={folder.id} value={folder.id} className="bg-[#0f172a]">
+                      {isSub ? `↳ ${label}` : label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 rounded-2xl bg-white/5 py-3.5 font-sans text-[11px] font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 py-3.5 font-sans text-[11px] font-black uppercase tracking-widest text-white transition-all hover:shadow-lg hover:shadow-purple-600/30 disabled:opacity-50"
+                >
+                  {isEditing ? 'Save changes' : 'Add tool'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 // ─── Main overlay ────────────────────────────────────────────────────────
 
 interface ManageOverlayProps {
@@ -444,6 +621,7 @@ interface ManageOverlayProps {
   onRenameFolder: (id: string, name: string) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
   onReorderFolders: (orderedIds: string[]) => Promise<void>;
+  onResetFolder: (folderId: string) => Promise<void>;
   onSignOut: () => void;
 }
 
@@ -463,6 +641,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   onRenameFolder,
   onDeleteFolder,
   onReorderFolders,
+  onResetFolder,
   onSignOut,
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'folders'>('apps');
@@ -470,10 +649,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   const [direction, setDirection] = useState(0);
 
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
+  const [addToolFolderId, setAddToolFolderId] = useState<string | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<
     { type: 'app' | 'folder'; id: string; label: string; extra?: string } | null
   >(null);
+  const [confirmReset, setConfirmReset] = useState<Folder | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const [newName, setNewName] = useState('');
   const [newUrl, setNewUrl] = useState('');
@@ -557,12 +739,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     }
   }, [orderedFolders, newToolFolderId]);
 
-  useEffect(() => {
-    if (editingTool && scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [editingTool]);
-
   // ── Handlers ─────────────────────────────────────────────────────────
 
   const switchTab = (tab: 'apps' | 'folders') => {
@@ -571,11 +747,23 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     setActiveTab(tab);
   };
 
-  const resetToolForm = () => {
+  const isToolModalOpen = addToolFolderId !== null || editingTool !== null;
+
+  const closeToolModal = () => {
+    setAddToolFolderId(null);
+    setEditingTool(null);
     setNewName('');
     setNewUrl('');
     setNewLogo('');
+  };
+
+  const openAddTool = (folderId: string) => {
     setEditingTool(null);
+    setNewName('');
+    setNewUrl('');
+    setNewLogo('');
+    setNewToolFolderId(folderId);
+    setAddToolFolderId(folderId);
   };
 
   const submitTool = async (e: React.FormEvent) => {
@@ -587,7 +775,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
         logo_url: editingTool.logo_url,
         folder_id: editingTool.folder_id,
       });
-      setEditingTool(null);
+      closeToolModal();
       return;
     }
 
@@ -599,7 +787,18 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       logo_url: newLogo.trim() || null,
       position: toolsIn(newToolFolderId).length,
     });
-    resetToolForm();
+    closeToolModal();
+  };
+
+  const confirmResetNow = async () => {
+    if (!confirmReset) return;
+    setResetting(true);
+    try {
+      await onResetFolder(confirmReset.id);
+      setConfirmReset(null);
+    } finally {
+      setResetting(false);
+    }
   };
 
   const submitFolder = async (e: React.FormEvent) => {
@@ -831,103 +1030,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                 >
                   {activeTab === 'apps' ? (
                     <div className="space-y-10">
-                      {viewMode === 'grid' && (
-                        <section className="rounded-[24px] border border-white/5 bg-white/5 p-4">
-                          <h3 className="mb-4 flex items-center gap-2 font-sans text-[10px] font-black uppercase tracking-[0.3em] text-purple-400">
-                            <Plus size={14} /> {editingTool ? 'Edit tool' : 'Add an AI app or tool'}
-                          </h3>
-                          <form
-                            onSubmit={submitTool}
-                            className="flex w-full flex-col items-center gap-2 md:flex-row"
-                          >
-                            <input
-                              type="text"
-                              placeholder="Name"
-                              aria-label="Tool name"
-                              className={`${inputClass} flex-1`}
-                              value={editingTool ? editingTool.name : newName}
-                              onChange={(e) =>
-                                editingTool
-                                  ? setEditingTool({ ...editingTool, name: e.target.value })
-                                  : setNewName(e.target.value)
-                              }
-                            />
-                            <input
-                              type="text"
-                              inputMode="url"
-                              placeholder="Web address"
-                              aria-label="Tool web address"
-                              className={`${inputClass} flex-1`}
-                              value={editingTool ? editingTool.url : newUrl}
-                              onChange={(e) =>
-                                editingTool
-                                  ? setEditingTool({ ...editingTool, url: e.target.value })
-                                  : setNewUrl(e.target.value)
-                              }
-                            />
-                            <input
-                              type="text"
-                              inputMode="url"
-                              placeholder="Logo link (optional)"
-                              aria-label="Logo image link, optional"
-                              className={`${inputClass} flex-1`}
-                              value={editingTool ? (editingTool.logo_url ?? '') : newLogo}
-                              onChange={(e) =>
-                                editingTool
-                                  ? setEditingTool({
-                                      ...editingTool,
-                                      logo_url: e.target.value || null,
-                                    })
-                                  : setNewLogo(e.target.value)
-                              }
-                            />
-                            <select
-                              aria-label="Folder"
-                              className={`${inputClass} w-full cursor-pointer md:w-56`}
-                              value={editingTool ? editingTool.folder_id : newToolFolderId}
-                              onChange={(e) =>
-                                editingTool
-                                  ? setEditingTool({ ...editingTool, folder_id: e.target.value })
-                                  : setNewToolFolderId(e.target.value)
-                              }
-                            >
-                              {orderedFolders.map(({ folder, label, isSub }) => (
-                                <option key={folder.id} value={folder.id} className="bg-[#0f172a]">
-                                  {isSub ? `↳ ${label}` : label}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="flex items-center justify-end gap-2">
-                              <button type="submit" disabled={busy} className={actionButtonClass}>
-                                {editingTool ? 'Save' : 'Add'}
-                              </button>
-                              {editingTool && (
-                                <button
-                                  type="button"
-                                  onClick={resetToolForm}
-                                  aria-label="Cancel editing"
-                                  className="flex h-11 items-center justify-center rounded-[24px] bg-white/10 px-4 text-white transition-all hover:bg-white/20"
-                                >
-                                  <X size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </form>
-                          <p className="mt-3 px-2 font-sans text-[11px] leading-relaxed text-gray-500">
-                            Leave the logo blank and we'll fetch the site's own icon automatically.
-                          </p>
-                        </section>
-                      )}
-
-                      <div className="flex items-center gap-2 rounded-2xl border border-purple-500/20 bg-purple-500/5 px-4 py-3">
-                        <FolderInput size={14} className="flex-shrink-0 text-purple-400" />
-                        <p className="font-sans text-[11px] leading-relaxed text-gray-400">
-                          Drag a tool by its handle onto any folder below — including
-                          <span className="text-purple-300"> sub-folders</span> — to move it there.
-                          Drop it among a folder's own tools to reorder instead.
-                        </p>
-                      </div>
-
                       <DndContext
                         sensors={sensors}
                         collisionDetection={closestCorners}
@@ -951,6 +1053,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                   onDelete={(tool) =>
                                     setConfirmDelete({ type: 'app', id: tool.id, label: tool.name })
                                   }
+                                  onAddTool={openAddTool}
+                                  onRequestReset={setConfirmReset}
                                 />
                               ))}
                               {groupIndex < folderGroups.length - 1 && (
@@ -1115,7 +1219,78 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Reset-to-default confirmation */}
+            <AnimatePresence>
+              {confirmReset && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-md"
+                >
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    role="alertdialog"
+                    aria-modal="true"
+                    className="max-w-sm rounded-[32px] border border-white/10 bg-[#0f172a] p-10 text-center shadow-2xl"
+                  >
+                    <RotateCcw size={40} className="mx-auto mb-6 text-amber-400" />
+                    <h3 className="mb-2 font-sans text-xl font-black uppercase tracking-tight">
+                      Reset {confirmReset.name}?
+                    </h3>
+                    <p className="mb-8 font-sans text-sm leading-relaxed text-gray-400">
+                      This discards every edit you've made in{' '}
+                      <span className="font-bold text-white">{confirmReset.name}</span> — added,
+                      removed, or renamed tools, and any reordering — and restores it to the current
+                      admin-curated version. This can't be undone.
+                    </p>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setConfirmReset(null)}
+                        className="flex-1 rounded-[24px] bg-white/5 px-6 py-4 font-sans text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={confirmResetNow}
+                        disabled={resetting}
+                        className="flex-1 rounded-[24px] bg-amber-600 px-6 py-4 font-sans text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-amber-600/20 transition-all hover:bg-amber-500 disabled:opacity-50"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
+
+          <ToolFormModal
+            isOpen={isToolModalOpen}
+            isEditing={editingTool !== null}
+            busy={busy}
+            name={editingTool ? editingTool.name : newName}
+            url={editingTool ? editingTool.url : newUrl}
+            logoUrl={editingTool ? (editingTool.logo_url ?? '') : newLogo}
+            folderId={editingTool ? editingTool.folder_id : (addToolFolderId ?? newToolFolderId)}
+            folderOptions={orderedFolders}
+            onNameChange={(v) =>
+              editingTool ? setEditingTool({ ...editingTool, name: v }) : setNewName(v)
+            }
+            onUrlChange={(v) =>
+              editingTool ? setEditingTool({ ...editingTool, url: v }) : setNewUrl(v)
+            }
+            onLogoChange={(v) =>
+              editingTool ? setEditingTool({ ...editingTool, logo_url: v || null }) : setNewLogo(v)
+            }
+            onFolderChange={(v) =>
+              editingTool ? setEditingTool({ ...editingTool, folder_id: v }) : setNewToolFolderId(v)
+            }
+            onSubmit={submitTool}
+            onClose={closeToolModal}
+          />
         </motion.div>
       )}
     </AnimatePresence>
