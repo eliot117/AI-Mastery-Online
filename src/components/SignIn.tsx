@@ -75,8 +75,7 @@ export const SignIn: React.FC = () => {
         </motion.h1>
 
         <p className="mb-12 max-w-xs text-center font-sans text-sm font-light leading-relaxed text-gray-400">
-          Your galaxy of AI tools, one search away. Sign in to get your own
-          library — yours to organise however you like.
+          Your personal galaxy of AI tools, organised and ready to launch.
         </p>
 
         <div className="flex w-full flex-col gap-3">
@@ -107,11 +106,6 @@ export const SignIn: React.FC = () => {
             {error}
           </p>
         )}
-
-        <p className="mt-10 text-center font-sans text-[11px] leading-relaxed text-gray-600">
-          You stay signed in on this device, so you'll land straight in your
-          library next time.
-        </p>
       </motion.div>
     </div>
   );

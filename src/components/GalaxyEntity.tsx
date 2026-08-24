@@ -65,10 +65,10 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({
   };
 
   /**
-   * Deliberately does NOT preventDefault: the native anchor opens the new
-   * tab, which keeps popup blockers out of the way and guarantees the
-   * rel/target hardening actually applies. We only log the click and let
-   * the parent play its launch flourish.
+   * Deliberately does NOT preventDefault: the native anchor navigates the
+   * current tab there itself, which is more reliable than a scripted
+   * `window.location` assignment. We only log the click and let the parent
+   * play its launch flourish before the page actually navigates away.
    */
   const handleToolClick = () => {
     if (tool) onLaunch(tool);
@@ -121,7 +121,6 @@ export const GalaxyEntity: React.FC<GalaxyEntityProps> = ({
           ) : (
             <motion.a
               href={toSafeHref(tool!.url)}
-              target="_blank"
               rel={SAFE_LINK_REL}
               onClick={handleToolClick}
               whileHover={{ scale: 1.12, rotate: 2 }}
