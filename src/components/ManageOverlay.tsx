@@ -347,18 +347,7 @@ const SortableFolderItem: React.FC<{
   onDelete: (folder: Folder) => void;
   onRename: (id: string, name: string) => void;
   onAddSubFolder: (parent: Folder) => void;
-  onRequestReset: (folder: Folder) => void;
-}> = ({
-  folder,
-  tools,
-  isDragging,
-  isEditing,
-  onBeginEdit,
-  onDelete,
-  onRename,
-  onAddSubFolder,
-  onRequestReset,
-}) => {
+}> = ({ folder, tools, isDragging, isEditing, onBeginEdit, onDelete, onRename, onAddSubFolder }) => {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id: folder.id });
 
@@ -434,16 +423,6 @@ const SortableFolderItem: React.FC<{
           >
             <FolderPlus size={16} />
           </button>
-          {folder.origin_folder_id && (
-            <button
-              onClick={() => onRequestReset(folder)}
-              aria-label={`Reset ${folder.name} to the default template`}
-              title="Reset to default"
-              className="rounded-full p-2 text-purple-400 transition-all hover:bg-purple-400/10"
-            >
-              <RotateCcw size={17} />
-            </button>
-          )}
           <button
             onClick={() => onBeginEdit(folder.id)}
             aria-label={`Rename ${folder.name}`}
@@ -474,8 +453,7 @@ const SubFolderCard: React.FC<{
   onBeginEdit: (id: string) => void;
   onDelete: (folder: Folder) => void;
   onRename: (id: string, name: string) => void;
-  onRequestReset: (folder: Folder) => void;
-}> = ({ folder, tools, isEditing, onBeginEdit, onDelete, onRename, onRequestReset }) => (
+}> = ({ folder, tools, isEditing, onBeginEdit, onDelete, onRename }) => (
   <div className="group flex h-24 w-full items-center justify-between gap-6 overflow-hidden rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10">
     <div className="flex min-w-0 flex-1 items-center gap-2.5">
       <CornerDownRight size={20} className="flex-shrink-0 text-purple-400/70" />
@@ -514,16 +492,6 @@ const SubFolderCard: React.FC<{
         {tools.length}
       </span>
       <div className="flex translate-x-3 justify-end gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
-        {folder.origin_folder_id && (
-          <button
-            onClick={() => onRequestReset(folder)}
-            aria-label={`Reset ${folder.name} to the default template`}
-            title="Reset to default"
-            className="rounded-full p-2 text-purple-400 transition-all hover:bg-purple-400/10"
-          >
-            <RotateCcw size={17} />
-          </button>
-        )}
         <button
           onClick={() => onBeginEdit(folder.id)}
           aria-label={`Rename ${folder.name}`}
@@ -853,6 +821,7 @@ interface ManageOverlayProps {
   onDeleteFolder: (id: string) => Promise<void>;
   onReorderFolders: (orderedIds: string[]) => Promise<void>;
   onResetFolder: (folderId: string) => Promise<void>;
+  onResetLibrary: () => Promise<void>;
   onSignOut: () => void;
 }
 
@@ -873,6 +842,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   onDeleteFolder,
   onReorderFolders,
   onResetFolder,
+  onResetLibrary,
   onSignOut,
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'folders'>('apps');
@@ -887,6 +857,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   >(null);
   const [confirmReset, setConfirmReset] = useState<Folder | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [confirmResetAll, setConfirmResetAll] = useState(false);
+  const [resettingAll, setResettingAll] = useState(false);
 
   const [newName, setNewName] = useState('');
   const [newUrl, setNewUrl] = useState('');
@@ -1055,6 +1027,16 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       setConfirmReset(null);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const confirmResetAllNow = async () => {
+    setResettingAll(true);
+    try {
+      await onResetLibrary();
+      setConfirmResetAll(false);
+    } finally {
+      setResettingAll(false);
     }
   };
 
@@ -1333,15 +1315,25 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                     </div>
                   ) : (
                     <div className="space-y-8">
-                      <button
-                        onClick={openNewFolder}
-                        className="flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-2.5 text-white transition-all hover:shadow-[0_0_20px_rgba(139,92,246,0.5)]"
-                      >
-                        <Plus size={19} />
-                        <span className="font-sans text-xs font-black uppercase tracking-widest">
-                          New folder
-                        </span>
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={openNewFolder}
+                          className="flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-2.5 text-white transition-all hover:shadow-[0_0_20px_rgba(139,92,246,0.5)]"
+                        >
+                          <Plus size={19} />
+                          <span className="font-sans text-xs font-black uppercase tracking-widest">
+                            New folder
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => setConfirmResetAll(true)}
+                          aria-label="Reset all folders to the default template"
+                          title="Reset to default"
+                          className="rounded-full p-2 text-purple-400 transition-all hover:bg-purple-400/10"
+                        >
+                          <RotateCcw size={17} />
+                        </button>
+                      </div>
 
                       <DndContext
                         sensors={sensors}
@@ -1373,7 +1365,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                       }
                                     }}
                                     onAddSubFolder={openNewSubFolder}
-                                    onRequestReset={setConfirmReset}
                                   />
 
                                   {subs.length > 0 && (
@@ -1404,7 +1395,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                                 void onRenameFolder(id, name);
                                               }
                                             }}
-                                            onRequestReset={setConfirmReset}
                                           />
                                         ))}
                                       </div>
@@ -1519,6 +1509,53 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                       <button
                         onClick={confirmResetNow}
                         disabled={resetting}
+                        className="flex-1 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 py-3.5 font-sans text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-purple-600/20 transition-all hover:shadow-purple-600/40 disabled:opacity-50"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Reset-all-folders confirmation */}
+            <AnimatePresence>
+              {confirmResetAll && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    role="alertdialog"
+                    aria-modal="true"
+                    className="w-full max-w-sm rounded-[28px] border border-white/10 bg-[#12131a] p-6 text-center shadow-2xl"
+                  >
+                    <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600">
+                      <RotateCcw size={24} className="text-white" />
+                    </span>
+                    <h3 className="mb-2 font-sans text-lg font-black uppercase tracking-tight text-white">
+                      Reset all folders?
+                    </h3>
+                    <p className="mb-6 font-sans text-sm leading-relaxed text-gray-400">
+                      Discards every change across your entire library and restores it to this
+                      exact default set-up. Can't be undone.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setConfirmResetAll(false)}
+                        className="flex-1 rounded-2xl bg-white/5 py-3.5 font-sans text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={confirmResetAllNow}
+                        disabled={resettingAll}
                         className="flex-1 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 py-3.5 font-sans text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-purple-600/20 transition-all hover:shadow-purple-600/40 disabled:opacity-50"
                       >
                         Reset

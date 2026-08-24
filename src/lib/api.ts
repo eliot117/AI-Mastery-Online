@@ -219,6 +219,19 @@ export async function resetFolderToBase(folderId: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Discards the caller's entire library -- every folder, sub-folder, and tool
+ * they've ever added, renamed, deleted, or reordered -- and restores it to
+ * an exact fresh clone of the current base template, as if signing up again
+ * today. Runs as a single Postgres function so the wipe-then-reclone can't
+ * be seen half-done, and RLS still enforces the caller can only ever touch
+ * their own rows.
+ */
+export async function resetLibraryToBase(): Promise<void> {
+  const { error } = await supabase.rpc('reset_library_to_base');
+  if (error) throw error;
+}
+
 // ─── Usage ───────────────────────────────────────────────────────────────
 
 /**

@@ -308,6 +308,18 @@ const App: React.FC = () => {
     [run],
   );
 
+  /** Same reasoning as handleResetFolder, but for the entire library at once. */
+  const handleResetLibrary = useCallback(
+    () =>
+      run(async () => {
+        await api.resetLibraryToBase();
+        const fresh = await api.fetchLibrary();
+        setFolders(fresh.folders);
+        setTools(fresh.tools);
+      }),
+    [run],
+  );
+
   /**
    * The anchor itself opens the destination in a new tab — this only logs
    * the click and plays a brief flourish, so popup blockers never see a
@@ -491,6 +503,7 @@ const App: React.FC = () => {
         onDeleteFolder={handleDeleteFolder}
         onReorderFolders={handleReorderFolders}
         onResetFolder={handleResetFolder}
+        onResetLibrary={handleResetLibrary}
         onSignOut={() => void signOut()}
 
       />
