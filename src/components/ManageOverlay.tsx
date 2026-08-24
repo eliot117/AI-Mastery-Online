@@ -12,8 +12,9 @@ import {
   LogOut,
   Loader2,
   CornerDownRight,
-  FolderInput,
   RotateCcw,
+  ChevronDown,
+  ImageUp,
 } from 'lucide-react';
 import {
   DndContext,
@@ -23,7 +24,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  useDroppable,
   DragOverlay,
   defaultDropAnimation,
   type CollisionDetection,
@@ -78,40 +78,15 @@ function useSmartCollisionDetection(): CollisionDetection {
 import type { Folder, NewTool, Tool } from '../types';
 import { getHostname, monogramDataUri, resolveLogoSrc } from '../lib/safeUrl';
 
-// ─── Sortable app row ────────────────────────────────────────────────────
+// ─── App row (Applications tab -- no drag-and-drop) ───────────────────────
 
-const SortableAppItem: React.FC<{
+const AppRow: React.FC<{
   tool: Tool;
-  isDragging?: boolean;
   onEdit: (tool: Tool) => void;
   onDelete: (tool: Tool) => void;
-}> = ({ tool, isDragging, onEdit, onDelete }) => {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
-    useSortable({ id: tool.id });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0 : 1,
-  };
-
+}> = ({ tool, onEdit, onDelete }) => {
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="group flex items-center gap-4 overflow-hidden rounded-[24px] border border-white/5 bg-white/5 p-5 transition-all hover:border-white/10 hover:bg-white/[0.07]"
-    >
-      <button
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        className="flex-shrink-0 cursor-grab touch-none rounded p-1 text-gray-600 transition-colors hover:text-purple-300 focus:outline-none active:cursor-grabbing"
-        aria-label={`Drag ${tool.name} to reorder or move to another folder`}
-        tabIndex={-1}
-      >
-        <GripVertical size={16} />
-      </button>
-
+    <div className="group flex items-center gap-4 overflow-hidden rounded-[24px] border border-white/5 bg-white/5 p-5 transition-all hover:border-white/10 hover:bg-white/[0.07]">
       <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg">
         <img
           src={resolveLogoSrc(tool.logo_url, tool.url) ?? monogramDataUri(tool.name)}
@@ -157,26 +132,14 @@ const SortableAppItem: React.FC<{
   );
 };
 
-const AppDragGhost: React.FC<{ tool: Tool }> = ({ tool }) => (
-  <div className="flex scale-[1.03] items-center gap-4 rounded-[24px] border border-purple-500/50 bg-[#1a1a2e] p-5 opacity-95 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(139,92,246,0.25)]">
-    <GripVertical size={16} className="text-purple-400" />
-    <h4 className="font-sans text-lg font-black uppercase tracking-wide text-white">{tool.name}</h4>
-    <p className="max-w-[180px] truncate font-sans text-xs font-bold italic text-gray-500">
-      {getHostname(tool.url)}
-    </p>
-  </div>
-);
+// ─── Folder section (Applications tab -- no drag-and-drop) ────────────────
 
-// ─── Droppable folder section (Applications tab) ─────────────────────────
-
-const FolderDropSection: React.FC<{
+const AppFolderSection: React.FC<{
   folder: Folder;
   label: string;
   isSub: boolean;
   tools: Tool[];
   viewMode: 'grid' | 'list';
-  draggingToolId: string | null;
-  draggingFromFolderId: string | null;
   onEdit: (tool: Tool) => void;
   onDelete: (tool: Tool) => void;
   onAddTool: (folderId: string) => void;
@@ -188,33 +151,16 @@ const FolderDropSection: React.FC<{
   isSub,
   tools,
   viewMode,
-  draggingToolId,
-  draggingFromFolderId,
   onEdit,
   onDelete,
   onAddTool,
   onRequestReset,
   onViewAsList,
 }) => {
-  const { setNodeRef, isOver } = useDroppable({ id: folder.id });
-
-  const isDragActive = draggingToolId !== null;
-  // Highlighting the folder a tool already lives in would be misleading —
-  // dropping there is a reorder, not a move.
-  const isMoveTarget = isDragActive && draggingFromFolderId !== folder.id;
-  const isActiveTarget = isMoveTarget && isOver;
-
   return (
     <section
-      ref={setNodeRef}
       id={`mgr-folder-${folder.id}`}
-      className={`space-y-5 rounded-[28px] border-2 p-5 transition-all duration-150 ${
-        isActiveTarget
-          ? 'border-purple-400 bg-purple-500/10 shadow-[0_0_40px_rgba(139,92,246,0.35)]'
-          : isMoveTarget
-            ? 'border-dashed border-white/20 bg-white/[0.02]'
-            : 'border-transparent'
-      } ${isSub ? 'md:ml-8' : ''}`}
+      className={`space-y-5 rounded-[28px] border-2 border-transparent p-5 ${isSub ? 'md:ml-8' : ''}`}
     >
       <div className="relative min-h-[64px] px-1">
         <div className="absolute left-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-3">
@@ -263,44 +209,16 @@ const FolderDropSection: React.FC<{
         </button>
       </div>
 
-      <AnimatePresence>
-        {isActiveTarget && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            className="mx-auto flex w-fit items-center gap-2 rounded-full bg-purple-500 px-4 py-1.5 shadow-lg shadow-purple-500/40"
-          >
-            <FolderInput size={13} className="text-white" />
-            <span className="font-sans text-[10px] font-black uppercase tracking-widest text-white">
-              Drop to move into {folder.name}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {tools.length === 0 ? (
-        <p
-          className={`rounded-2xl border border-dashed py-6 text-center font-sans text-xs uppercase tracking-widest transition-colors ${
-            isMoveTarget ? 'border-purple-400/40 text-purple-300/70' : 'border-white/5 text-gray-600'
-          }`}
-        >
-          {isMoveTarget ? `Drop here to add to ${folder.name}` : 'Empty'}
+        <p className="rounded-2xl border border-dashed border-white/5 py-6 text-center font-sans text-xs uppercase tracking-widest text-gray-600">
+          Empty
         </p>
       ) : viewMode === 'grid' ? (
-        <SortableContext items={tools.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {tools.map((tool) => (
-              <SortableAppItem
-                key={tool.id}
-                tool={tool}
-                isDragging={draggingToolId === tool.id}
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
-            ))}
-          </div>
-        </SortableContext>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {tools.map((tool) => (
+            <AppRow key={tool.id} tool={tool} onEdit={onEdit} onDelete={onDelete} />
+          ))}
+        </div>
       ) : (
         <div className="space-y-1 pl-4 text-center">
           {tools.map((tool) => (
@@ -389,8 +307,8 @@ const SortableFolderItem: React.FC<{
           translate-x used by the buttons, so the whole cluster reads as
           one synchronized slide on hover -- only the buttons additionally
           fade in, since the logos/count must stay visible at rest. */}
-      <div className="mr-4 grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
-        <div className="flex translate-x-3 -space-x-3 transition-transform duration-200 ease-out group-hover:translate-x-0">
+      <div className="mr-8 grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
+        <div className="flex justify-end translate-x-3 -space-x-3 transition-transform duration-200 ease-out group-hover:translate-x-0">
           {tools.slice(0, 5).map((t) => {
             const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
             return (
@@ -466,7 +384,7 @@ const SubFolderCard: React.FC<{
       )}
     </div>
 
-    <div className="mr-4 grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
+    <div className="mr-8 grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
       <div className="flex translate-x-3 -space-x-3 transition-transform duration-200 ease-out group-hover:translate-x-0">
         {tools.slice(0, 5).map((t) => {
           const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
@@ -540,6 +458,7 @@ interface ToolFormModalProps {
   onUrlChange: (v: string) => void;
   onLogoChange: (v: string) => void;
   onFolderChange: (v: string) => void;
+  onUploadLogo: (file: File) => Promise<string>;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 }
@@ -557,12 +476,41 @@ const ToolFormModal: React.FC<ToolFormModalProps> = ({
   onUrlChange,
   onLogoChange,
   onFolderChange,
+  onUploadLogo,
   onSubmit,
   onClose,
 }) => {
   const fieldClass =
     'h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-5 font-sans text-sm text-white transition-all placeholder:text-gray-600 focus:border-purple-500/50 focus:outline-none';
   const labelClass = 'mb-2 block font-sans text-[10px] font-black uppercase tracking-widest text-gray-500';
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please choose an image file.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('Images must be under 2MB.');
+      return;
+    }
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const publicUrl = await onUploadLogo(file);
+      onLogoChange(publicUrl);
+    } catch {
+      setUploadError("Couldn't upload that image. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -629,31 +577,63 @@ const ToolFormModal: React.FC<ToolFormModalProps> = ({
 
               <div>
                 <label className={labelClass}>Logo link (optional)</label>
-                <input
-                  type="text"
-                  inputMode="url"
-                  placeholder="Leave blank to auto-fetch the site's icon"
-                  aria-label="Logo image link, optional"
-                  className={fieldClass}
-                  value={logoUrl}
-                  onChange={(e) => onLogoChange(e.target.value)}
-                />
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    inputMode="url"
+                    placeholder="Leave blank to auto-fetch the site's icon"
+                    aria-label="Logo image link, optional"
+                    className={fieldClass}
+                    value={logoUrl}
+                    onChange={(e) => onLogoChange(e.target.value)}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileSelected}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    aria-label="Upload a logo image from your device"
+                    title="Upload from device"
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gray-400 transition-all hover:border-purple-500/50 hover:text-purple-400 disabled:opacity-50"
+                  >
+                    {uploading ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <ImageUp size={18} />
+                    )}
+                  </button>
+                </div>
+                {uploadError && (
+                  <p className="mt-2 font-sans text-xs text-red-400">{uploadError}</p>
+                )}
               </div>
 
               <div>
                 <label className={labelClass}>Folder</label>
-                <select
-                  aria-label="Folder"
-                  className={`${fieldClass} cursor-pointer`}
-                  value={folderId}
-                  onChange={(e) => onFolderChange(e.target.value)}
-                >
-                  {folderOptions.map(({ folder, label, isSub }) => (
-                    <option key={folder.id} value={folder.id} className="bg-[#0f172a]">
-                      {isSub ? `↳ ${label}` : label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    aria-label="Folder"
+                    className={`${fieldClass} cursor-pointer appearance-none pr-10`}
+                    value={folderId}
+                    onChange={(e) => onFolderChange(e.target.value)}
+                  >
+                    {folderOptions.map(({ folder, label, isSub }) => (
+                      <option key={folder.id} value={folder.id} className="bg-[#0f172a]">
+                        {isSub ? `↳ ${label}` : label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -761,21 +741,27 @@ const FolderFormModal: React.FC<FolderFormModalProps> = ({
 
               <div>
                 <label className={labelClass}>Nest inside</label>
-                <select
-                  aria-label="Nest inside"
-                  className={`${fieldClass} cursor-pointer`}
-                  value={parentId}
-                  onChange={(e) => onParentChange(e.target.value)}
-                >
-                  <option value="" className="bg-[#0f172a]">
-                    Top level
-                  </option>
-                  {topLevelFolders.map((f) => (
-                    <option key={f.id} value={f.id} className="bg-[#0f172a]">
-                      {`↳ Inside ${f.name}`}
+                <div className="relative">
+                  <select
+                    aria-label="Nest inside"
+                    className={`${fieldClass} cursor-pointer appearance-none pr-10`}
+                    value={parentId}
+                    onChange={(e) => onParentChange(e.target.value)}
+                  >
+                    <option value="" className="bg-[#0f172a]">
+                      Main folder
                     </option>
-                  ))}
-                </select>
+                    {topLevelFolders.map((f) => (
+                      <option key={f.id} value={f.id} className="bg-[#0f172a]">
+                        {`${f.name} subfolder`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -814,14 +800,13 @@ interface ManageOverlayProps {
   onCreateTool: (input: NewTool) => Promise<void>;
   onUpdateTool: (id: string, patch: Partial<Tool>) => Promise<void>;
   onDeleteTool: (id: string) => Promise<void>;
-  onReorderTools: (orderedIds: string[]) => Promise<void>;
-  onMoveTool: (toolId: string, folderId: string, position: number) => Promise<void>;
   onCreateFolder: (name: string, parentId: string | null) => Promise<void>;
   onRenameFolder: (id: string, name: string) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
   onReorderFolders: (orderedIds: string[]) => Promise<void>;
   onResetFolder: (folderId: string) => Promise<void>;
   onResetLibrary: () => Promise<void>;
+  onUploadLogo: (file: File) => Promise<string>;
   onSignOut: () => void;
 }
 
@@ -835,14 +820,13 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   onCreateTool,
   onUpdateTool,
   onDeleteTool,
-  onReorderTools,
-  onMoveTool,
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
   onReorderFolders,
   onResetFolder,
   onResetLibrary,
+  onUploadLogo,
   onSignOut,
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'folders'>('apps');
@@ -869,15 +853,11 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   const [newFolderParent, setNewFolderParent] = useState('');
   const [folderModalOpen, setFolderModalOpen] = useState(false);
 
-  const [draggingToolId, setDraggingToolId] = useState<string | null>(null);
   const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-  // Separate detectors per DndContext: each keeps its own "last real hit"
-  // fallback, so a fast drag in one tab can't leak stale state into the other.
-  const appsCollisionDetection = useSmartCollisionDetection();
   const foldersCollisionDetection = useSmartCollisionDetection();
 
   // ── Derived ──────────────────────────────────────────────────────────
@@ -949,7 +929,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     return groups;
   }, [orderedFolders]);
 
-  const draggingTool = draggingToolId ? (tools.find((t) => t.id === draggingToolId) ?? null) : null;
   const draggingFolder = draggingFolderId ? (foldersById.get(draggingFolderId) ?? null) : null;
 
   useEffect(() => {
@@ -1065,59 +1044,26 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     closeFolderModal();
   };
 
+  /** Folders tab only -- the Applications tab has no drag-and-drop. */
   const handleDragStart = (event: DragStartEvent) => {
-    const id = event.active.id as string;
-    if (foldersById.has(id)) setDraggingFolderId(id);
-    else setDraggingToolId(id);
-  };
-
-  /** `over` can be a folder container or another tool — resolve either. */
-  const resolveTargetFolderId = (overId: string): string | null => {
-    if (foldersById.has(overId)) return overId;
-    return tools.find((t) => t.id === overId)?.folder_id ?? null;
+    setDraggingFolderId(event.active.id as string);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     const activeId = active.id as string;
-    const wasTool = draggingToolId !== null;
 
-    setDraggingToolId(null);
     setDraggingFolderId(null);
 
     if (!over) return;
     const overId = over.id as string;
+    if (activeId === overId) return;
 
-    // Reordering top-level folder cards.
-    if (!wasTool) {
-      if (activeId === overId) return;
-      const ids = topLevelFolders.map((f) => f.id);
-      const from = ids.indexOf(activeId);
-      const to = ids.indexOf(overId);
-      if (from === -1 || to === -1) return;
-      void onReorderFolders(arrayMove(ids, from, to));
-      return;
-    }
-
-    const tool = tools.find((t) => t.id === activeId);
-    if (!tool) return;
-
-    const targetFolderId = resolveTargetFolderId(overId);
-    if (!targetFolderId) return;
-
-    if (targetFolderId === tool.folder_id) {
-      // Same folder: a reorder.
-      if (activeId === overId) return;
-      const siblings = toolsIn(tool.folder_id);
-      const from = siblings.findIndex((t) => t.id === activeId);
-      const to = siblings.findIndex((t) => t.id === overId);
-      if (from === -1 || to === -1) return;
-      void onReorderTools(arrayMove(siblings, from, to).map((t) => t.id));
-      return;
-    }
-
-    // Different folder: a move, appended to the end of the destination.
-    void onMoveTool(activeId, targetFolderId, toolsIn(targetFolderId).length);
+    const ids = topLevelFolders.map((f) => f.id);
+    const from = ids.indexOf(activeId);
+    const to = ids.indexOf(overId);
+    if (from === -1 || to === -1) return;
+    void onReorderFolders(arrayMove(ids, from, to));
   };
 
   const requestDeleteFolder = (folder: Folder) => {
@@ -1273,45 +1219,32 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                 >
                   {activeTab === 'apps' ? (
                     <div className="space-y-10">
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={appsCollisionDetection}
-                        onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <div className="space-y-6">
-                          {folderGroups.map((group, groupIndex) => (
-                            <React.Fragment key={group[0].folder.id}>
-                              {group.map(({ folder, isSub, label }) => (
-                                <FolderDropSection
-                                  key={folder.id}
-                                  folder={folder}
-                                  label={label}
-                                  isSub={isSub}
-                                  tools={toolsIn(folder.id)}
-                                  viewMode={viewMode}
-                                  draggingToolId={draggingToolId}
-                                  draggingFromFolderId={draggingTool?.folder_id ?? null}
-                                  onEdit={setEditingTool}
-                                  onDelete={(tool) =>
-                                    setConfirmDelete({ type: 'app', id: tool.id, label: tool.name })
-                                  }
-                                  onAddTool={openAddTool}
-                                  onRequestReset={setConfirmReset}
-                                  onViewAsList={viewFolderAsList}
-                                />
-                              ))}
-                              {groupIndex < folderGroups.length - 1 && (
-                                <div className="mx-auto h-px w-2/3 bg-white/10" aria-hidden="true" />
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </div>
-
-                        <DragOverlay dropAnimation={defaultDropAnimation}>
-                          {draggingTool ? <AppDragGhost tool={draggingTool} /> : null}
-                        </DragOverlay>
-                      </DndContext>
+                      <div className="space-y-6">
+                        {folderGroups.map((group, groupIndex) => (
+                          <React.Fragment key={group[0].folder.id}>
+                            {group.map(({ folder, isSub, label }) => (
+                              <AppFolderSection
+                                key={folder.id}
+                                folder={folder}
+                                label={label}
+                                isSub={isSub}
+                                tools={toolsIn(folder.id)}
+                                viewMode={viewMode}
+                                onEdit={setEditingTool}
+                                onDelete={(tool) =>
+                                  setConfirmDelete({ type: 'app', id: tool.id, label: tool.name })
+                                }
+                                onAddTool={openAddTool}
+                                onRequestReset={setConfirmReset}
+                                onViewAsList={viewFolderAsList}
+                              />
+                            ))}
+                            {groupIndex < folderGroups.length - 1 && (
+                              <div className="mx-auto h-px w-2/3 bg-white/10" aria-hidden="true" />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-8">
@@ -1497,7 +1430,9 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                       Reset {confirmReset.name}?
                     </h3>
                     <p className="mb-6 font-sans text-sm leading-relaxed text-gray-400">
-                      Discards your changes and restores the default version. Can't be undone.
+                      Discards your changes and restores the default version.
+                      <br />
+                      Can't be undone.
                     </p>
                     <div className="flex gap-3">
                       <button
@@ -1544,7 +1479,9 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                     </h3>
                     <p className="mb-6 font-sans text-sm leading-relaxed text-gray-400">
                       Discards every change across your entire library and restores it to this
-                      exact default set-up. Can't be undone.
+                      exact default set-up.
+                      <br />
+                      Can't be undone.
                     </p>
                     <div className="flex gap-3">
                       <button
@@ -1588,6 +1525,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
             onFolderChange={(v) =>
               editingTool ? setEditingTool({ ...editingTool, folder_id: v }) : setNewToolFolderId(v)
             }
+            onUploadLogo={onUploadLogo}
             onSubmit={submitTool}
             onClose={closeToolModal}
           />

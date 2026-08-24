@@ -232,6 +232,26 @@ export async function resetLibraryToBase(): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Uploads a user-picked logo image to the `logos` storage bucket and
+ * returns its public URL. Kept out of the `tools` row's logo_url text
+ * column directly (no base64) so the CHECK constraint and safeUrl guards
+ * that already assume "logo_url is always a real https link" keep holding.
+ * Storage RLS restricts writes to a path prefixed by the caller's own id.
+ */
+export async function uploadLogo(file: File): Promise<string> {
+  const ownerId = await requireUserId();
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+  const path = `${ownerId}/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from('logos')
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+  if (error) throw error;
+
+  return supabase.storage.from('logos').getPublicUrl(path).data.publicUrl;
+}
+
 // ─── Usage ───────────────────────────────────────────────────────────────
 
 /**

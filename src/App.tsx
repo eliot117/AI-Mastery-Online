@@ -25,12 +25,25 @@ const Booting: React.FC<{ label: string }> = ({ label }) => (
 
 const App: React.FC = () => {
   const { user, initializing, signOut } = useAuth();
+  const userId = user?.id ?? null;
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Regaining tab focus makes Supabase silently re-validate/refresh the
+   * session, which fires onAuthStateChange with a new session object even
+   * though it's the same user. Keying the load effect below on the user id
+   * (a stable primitive) instead of the session's user object stops that
+   * from being mistaken for a real sign-in and re-running the full load --
+   * which was blanking the screen back to the Booting gate on every tab
+   * switch, closing whatever form was open and replaying the orbit's
+   * entrance animation as if the app had just been opened.
+   */
+  const hasLoadedOnceRef = React.useRef(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
@@ -51,7 +64,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setLoadingLibrary(false);
       return;
     }
@@ -76,12 +89,15 @@ const App: React.FC = () => {
         if (active) setError(e instanceof Error ? e.message : 'Could not load your library.');
       })
       .finally(() => {
-        if (active) setLoadingLibrary(false);
+        if (active) {
+          setLoadingLibrary(false);
+          hasLoadedOnceRef.current = true;
+        }
       });
     return () => {
       active = false;
     };
-  }, [user, reload]);
+  }, [userId, reload]);
 
   // ── Ambient orbit rotation ─────────────────────────────────────────────
 
@@ -218,29 +234,7 @@ const App: React.FC = () => {
     [run],
   );
 
-  const handleReorderTools = useCallback(
-    (orderedIds: string[]) =>
-      run(async () => {
-        setTools((prev) => {
-          const pos = new Map(orderedIds.map((id, i) => [id, i]));
-          return prev.map((t) => (pos.has(t.id) ? { ...t, position: pos.get(t.id)! } : t));
-        });
-        await api.reorderTools(orderedIds);
-      }),
-    [run],
-  );
-
-  const handleMoveTool = useCallback(
-    (toolId: string, folderId: string, position: number) =>
-      run(async () => {
-        setTools((prev) =>
-          prev.map((t) => (t.id === toolId ? { ...t, folder_id: folderId, position } : t)),
-        );
-        const updated = await api.moveToolToFolder(toolId, folderId, position);
-        setTools((prev) => prev.map((t) => (t.id === toolId ? updated : t)));
-      }),
-    [run],
-  );
+  const handleUploadLogo = useCallback((file: File) => api.uploadLogo(file), []);
 
   const handleCreateFolder = useCallback(
     (name: string, parentId: string | null) =>
@@ -496,14 +490,13 @@ const App: React.FC = () => {
         onCreateTool={handleCreateTool}
         onUpdateTool={handleUpdateTool}
         onDeleteTool={handleDeleteTool}
-        onReorderTools={handleReorderTools}
-        onMoveTool={handleMoveTool}
         onCreateFolder={handleCreateFolder}
         onRenameFolder={handleRenameFolder}
         onDeleteFolder={handleDeleteFolder}
         onReorderFolders={handleReorderFolders}
         onResetFolder={handleResetFolder}
         onResetLibrary={handleResetLibrary}
+        onUploadLogo={handleUploadLogo}
         onSignOut={() => void signOut()}
 
       />
