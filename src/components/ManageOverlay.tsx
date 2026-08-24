@@ -38,6 +38,39 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Folder, NewTool, Tool } from '../types';
 import { getHostname, monogramDataUri, resolveLogoSrc } from '../lib/safeUrl';
 
+// ─── Folder tree connector ────────────────────────────────────────────────
+//
+// A single <path> -- one trunk plus one branch per sub-folder, always
+// drawn behind the cards -- rather than a separate div per line segment.
+// Coordinates are pre-shifted so (0,0) is the SVG element's own top-left.
+
+const SUB_CARD_H = 112; // matches the h-28 fixed height on both card types
+const SUB_GAP = 12; // matches space-y-3 between stacked sub-folder cards
+const CONNECTOR_TRUNK_X = -36; // left of the sub-folder cards, inside the ml-14 gutter
+const CONNECTOR_BRANCH_END_X = 6; // tucks just under each card's rounded left edge
+const CONNECTOR_START_Y = -20; // reaches up near the parent's bottom-left corner
+const CONNECTOR_BRANCH_Y_OFFSET = 26; // attaches near each card's top, not its center
+
+function buildFolderConnectorPath(subFolderCount: number): { d: string; height: number } {
+  if (subFolderCount === 0) return { d: '', height: 0 };
+
+  const localX = (x: number) => x - CONNECTOR_TRUNK_X;
+  const localY = (y: number) => y - CONNECTOR_START_Y;
+  const branchY = (index: number) => index * (SUB_CARD_H + SUB_GAP) + CONNECTOR_BRANCH_Y_OFFSET;
+
+  const trunkTop = localY(CONNECTOR_START_Y);
+  const trunkBottom = localY(branchY(subFolderCount - 1));
+
+  let d = `M ${localX(CONNECTOR_TRUNK_X)} ${trunkTop} L ${localX(CONNECTOR_TRUNK_X)} ${trunkBottom}`;
+  for (let i = 0; i < subFolderCount; i++) {
+    const y = localY(branchY(i));
+    d += ` M ${localX(CONNECTOR_TRUNK_X)} ${y} L ${localX(CONNECTOR_BRANCH_END_X)} ${y}`;
+  }
+
+  const height = (subFolderCount - 1) * (SUB_CARD_H + SUB_GAP) + SUB_CARD_H - CONNECTOR_START_Y;
+  return { d, height };
+}
+
 // ─── Sortable app row ────────────────────────────────────────────────────
 
 const SortableAppItem: React.FC<{
@@ -307,7 +340,7 @@ const SortableFolderItem: React.FC<{
     <div
       ref={setNodeRef}
       style={style}
-      className="group flex w-full items-center justify-between gap-6 rounded-[32px] border border-white/5 bg-white/5 p-8 transition-all hover:border-white/10"
+      className="group flex h-28 w-full items-center justify-between gap-6 rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10"
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
@@ -351,14 +384,9 @@ const SortableFolderItem: React.FC<{
             );
           })}
         </div>
-        <div className="flex flex-col items-end">
-          <span className="font-sans text-3xl font-black leading-none text-white">
-            {tools.length}
-          </span>
-          <span className="font-sans text-[9px] font-bold uppercase tracking-widest text-purple-500/60">
-            Tools
-          </span>
-        </div>
+        <span className="font-sans text-3xl font-black leading-none text-purple-600/40">
+          {tools.length}
+        </span>
         <div className="flex gap-1">
           <button
             onClick={() => onAddSubFolder(folder)}
@@ -388,42 +416,68 @@ const SortableFolderItem: React.FC<{
   );
 };
 
-/** A shorter, indented card for a sub-folder — same right edge as its parent. */
+/** Same height and content as the parent card (minus "add sub-folder", since
+ * nesting is only one level deep) — the difference is purely positional. */
 const SubFolderCard: React.FC<{
   folder: Folder;
-  toolCount: number;
+  tools: Tool[];
   isEditing: boolean;
   onBeginEdit: (id: string) => void;
   onDelete: (folder: Folder) => void;
   onRename: (id: string, name: string) => void;
-}> = ({ folder, toolCount, isEditing, onBeginEdit, onDelete, onRename }) => (
-  <div className="flex w-full items-center justify-between gap-4 rounded-[24px] border border-white/5 bg-white/5 py-4 pl-5 pr-6 transition-all hover:border-white/10">
-    <div className="flex min-w-0 flex-1 items-center gap-2">
-      <CornerDownRight size={18} className="flex-shrink-0 text-purple-400/70" />
+}> = ({ folder, tools, isEditing, onBeginEdit, onDelete, onRename }) => (
+  <div className="group flex h-28 w-full items-center justify-between gap-6 rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10">
+    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+      <CornerDownRight size={20} className="flex-shrink-0 text-purple-400/70" />
       {isEditing ? (
-        <FolderRenameField target={folder} onRename={onRename} />
+        <FolderRenameField target={folder} large onRename={onRename} />
       ) : (
-        <span className="truncate font-sans text-base font-black uppercase tracking-wide text-white">
+        <h4 className="truncate font-sans text-xl font-black uppercase leading-none tracking-widest text-white">
           {folder.name}
-        </span>
+        </h4>
       )}
     </div>
-    <div className="flex flex-shrink-0 items-center gap-3">
-      <span className="font-sans text-lg font-black text-purple-500/60">{toolCount}</span>
-      <button
-        onClick={() => onBeginEdit(folder.id)}
-        aria-label={`Rename ${folder.name}`}
-        className="rounded-[12px] p-1.5 text-gray-500 transition-all hover:bg-white/10 hover:text-blue-400"
-      >
-        <Edit2 size={14} />
-      </button>
-      <button
-        onClick={() => onDelete(folder)}
-        aria-label={`Delete ${folder.name}`}
-        className="rounded-[12px] p-1.5 text-gray-500 transition-all hover:bg-white/10 hover:text-red-500"
-      >
-        <Trash2 size={14} />
-      </button>
+    <div className="flex flex-shrink-0 items-center gap-5">
+      <div className="flex -space-x-3">
+        {tools.slice(0, 5).map((t) => {
+          const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
+          return (
+            <div
+              key={t.id}
+              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[14px] border border-white/10 bg-black ring-4 ring-black"
+            >
+              <img
+                src={src}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = monogramDataUri(t.name);
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <span className="font-sans text-3xl font-black leading-none text-purple-600/40">
+        {tools.length}
+      </span>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onBeginEdit(folder.id)}
+          aria-label={`Rename ${folder.name}`}
+          className="rounded-[14px] p-2 text-gray-500 transition-all hover:bg-white/10 hover:text-blue-400"
+        >
+          <Edit2 size={16} />
+        </button>
+        <button
+          onClick={() => onDelete(folder)}
+          aria-label={`Delete ${folder.name}`}
+          className="rounded-[14px] p-2 text-gray-500 transition-all hover:bg-white/10 hover:text-red-500"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
     </div>
   </div>
 );
@@ -1222,9 +1276,10 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                           items={topLevelFolders.map((f) => f.id)}
                           strategy={verticalListSortingStrategy}
                         >
-                          <div className="space-y-3">
+                          <div className="mx-auto max-w-4xl space-y-3">
                             {topLevelFolders.map((folder) => {
                               const subs = subFoldersByParent.get(folder.id) ?? [];
+                              const connector = buildFolderConnectorPath(subs.length);
                               return (
                                 <div key={folder.id} className="relative">
                                   <SortableFolderItem
@@ -1245,15 +1300,34 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                   />
 
                                   {subs.length > 0 && (
-                                    <div className="relative ml-14 mt-3 space-y-3">
-                                      {/* Purple tree connector linking the parent to its sub-folders */}
-                                      <div className="absolute -left-6 -top-[26px] bottom-6 w-0.5 rounded-full bg-purple-500/30" />
-                                      {subs.map((sub) => (
-                                        <div key={sub.id} className="relative">
-                                          <div className="absolute -left-6 top-1/2 h-0.5 w-6 -translate-y-1/2 bg-purple-500/30" />
+                                    <div className="relative ml-14 mt-3">
+                                      {/* One single path: a purple trunk with a branch to each
+                                          sub-folder, rendered behind the cards. */}
+                                      <svg
+                                        className="pointer-events-none absolute z-0"
+                                        style={{
+                                          left: CONNECTOR_TRUNK_X,
+                                          top: CONNECTOR_START_Y,
+                                          width: CONNECTOR_BRANCH_END_X - CONNECTOR_TRUNK_X,
+                                          height: connector.height,
+                                        }}
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d={connector.d}
+                                          stroke="rgb(168 85 247 / 0.35)"
+                                          strokeWidth={2.5}
+                                          strokeLinecap="round"
+                                          fill="none"
+                                        />
+                                      </svg>
+
+                                      <div className="relative z-10 space-y-3">
+                                        {subs.map((sub) => (
                                           <SubFolderCard
+                                            key={sub.id}
                                             folder={sub}
-                                            toolCount={toolsIn(sub.id).length}
+                                            tools={toolsIn(sub.id)}
                                             isEditing={editingFolderId === sub.id}
                                             onBeginEdit={setEditingFolderId}
                                             onDelete={requestDeleteFolder}
@@ -1265,8 +1339,8 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                               }
                                             }}
                                           />
-                                        </div>
-                                      ))}
+                                        ))}
+                                      </div>
                                     </div>
                                   )}
                                 </div>
