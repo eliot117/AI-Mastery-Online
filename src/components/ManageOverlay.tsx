@@ -389,7 +389,7 @@ const SortableFolderItem: React.FC<{
           translate-x used by the buttons, so the whole cluster reads as
           one synchronized slide on hover -- only the buttons additionally
           fade in, since the logos/count must stay visible at rest. */}
-      <div className="grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
+      <div className="mr-4 grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
         <div className="flex translate-x-3 -space-x-3 transition-transform duration-200 ease-out group-hover:translate-x-0">
           {tools.slice(0, 5).map((t) => {
             const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
@@ -466,7 +466,7 @@ const SubFolderCard: React.FC<{
       )}
     </div>
 
-    <div className="grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
+    <div className="mr-4 grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
       <div className="flex translate-x-3 -space-x-3 transition-transform duration-200 ease-out group-hover:translate-x-0">
         {tools.slice(0, 5).map((t) => {
           const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
