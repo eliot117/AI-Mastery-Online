@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      # A missing tailwind.config.js or postcss.config.js does not fail the
+      # build — it silently emits a stylesheet with no utilities, shipping a
+      # completely unstyled site. That happened once; this catches it.
+      - name: Verify stylesheet was actually generated
+        run: |
+          CSS_FILE=$(find dist/assets -name '*.css' | head -1)
+          if [ -z "$CSS_FILE" ]; then
+            echo "::error::No stylesheet emitted — Tailwind/PostCSS did not run."
+            exit 1
+          fi
+          SIZE=$(wc -c < "$CSS_FILE")
+          echo "Stylesheet: $CSS_FILE (${SIZE} bytes)"
+          if [ "$SIZE" -lt 10000 ]; then
+            echo "::error::Stylesheet is only ${SIZE} bytes — Tailwind produced no utilities. Check tailwind.config.js and postcss.config.js exist."
+            exit 1
+          fi
+
+      # Fails only on high/critical advisories. Moderate findings in build-only
+      # tooling do not reach users and should not block a deploy.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
