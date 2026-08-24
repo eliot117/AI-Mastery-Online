@@ -38,39 +38,6 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Folder, NewTool, Tool } from '../types';
 import { getHostname, monogramDataUri, resolveLogoSrc } from '../lib/safeUrl';
 
-// ─── Folder tree connector ────────────────────────────────────────────────
-//
-// A single <path> -- one trunk plus one branch per sub-folder, always
-// drawn behind the cards -- rather than a separate div per line segment.
-// Coordinates are pre-shifted so (0,0) is the SVG element's own top-left.
-
-const SUB_CARD_H = 112; // matches the h-28 fixed height on both card types
-const SUB_GAP = 12; // matches space-y-3 between stacked sub-folder cards
-const CONNECTOR_TRUNK_X = -36; // left of the sub-folder cards, inside the ml-14 gutter
-const CONNECTOR_BRANCH_END_X = 6; // tucks just under each card's rounded left edge
-const CONNECTOR_START_Y = -20; // reaches up near the parent's bottom-left corner
-const CONNECTOR_BRANCH_Y_OFFSET = 26; // attaches near each card's top, not its center
-
-function buildFolderConnectorPath(subFolderCount: number): { d: string; height: number } {
-  if (subFolderCount === 0) return { d: '', height: 0 };
-
-  const localX = (x: number) => x - CONNECTOR_TRUNK_X;
-  const localY = (y: number) => y - CONNECTOR_START_Y;
-  const branchY = (index: number) => index * (SUB_CARD_H + SUB_GAP) + CONNECTOR_BRANCH_Y_OFFSET;
-
-  const trunkTop = localY(CONNECTOR_START_Y);
-  const trunkBottom = localY(branchY(subFolderCount - 1));
-
-  let d = `M ${localX(CONNECTOR_TRUNK_X)} ${trunkTop} L ${localX(CONNECTOR_TRUNK_X)} ${trunkBottom}`;
-  for (let i = 0; i < subFolderCount; i++) {
-    const y = localY(branchY(i));
-    d += ` M ${localX(CONNECTOR_TRUNK_X)} ${y} L ${localX(CONNECTOR_BRANCH_END_X)} ${y}`;
-  }
-
-  const height = (subFolderCount - 1) * (SUB_CARD_H + SUB_GAP) + SUB_CARD_H - CONNECTOR_START_Y;
-  return { d, height };
-}
-
 // ─── Sortable app row ────────────────────────────────────────────────────
 
 const SortableAppItem: React.FC<{
@@ -105,17 +72,31 @@ const SortableAppItem: React.FC<{
         <GripVertical size={16} />
       </button>
 
+      <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg">
+        <img
+          src={resolveLogoSrc(tool.logo_url, tool.url) ?? monogramDataUri(tool.name)}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-contain"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = monogramDataUri(tool.name);
+          }}
+        />
+      </div>
+
       <h4 className="min-w-0 flex-1 truncate font-sans text-lg font-black uppercase tracking-wide text-white">
         {tool.name}
       </h4>
 
-      {/* URL sits flush right at rest; on hover it yields left, in sync with
-          the edit/delete buttons sliding + fading in from the right. */}
+      {/* URL and the edit/delete buttons share one transform: both rest
+          translated right, both slide to their place on hover, same
+          distance and speed. Only the buttons additionally fade in --
+          the URL stays fully visible throughout. */}
       <div className="flex flex-shrink-0 items-center gap-3">
-        <p className="whitespace-nowrap font-sans text-xs font-bold italic text-gray-400">
+        <p className="translate-x-3 whitespace-nowrap font-sans text-xs font-bold italic text-gray-400 transition-transform duration-200 ease-out group-hover:translate-x-0">
           {getHostname(tool.url)}
         </p>
-        <div className="flex flex-shrink-0 -translate-x-3 gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
+        <div className="flex flex-shrink-0 translate-x-3 gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
           <button
             onClick={() => onEdit(tool)}
             aria-label={`Edit ${tool.name}`}
@@ -340,7 +321,7 @@ const SortableFolderItem: React.FC<{
     <div
       ref={setNodeRef}
       style={style}
-      className="group flex h-28 w-full items-center justify-between gap-6 rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10"
+      className="group flex h-28 w-full items-center justify-between gap-6 overflow-hidden rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10"
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
@@ -362,8 +343,14 @@ const SortableFolderItem: React.FC<{
         )}
       </div>
 
-      <div className="flex flex-shrink-0 items-center gap-5">
-        <div className="flex -space-x-3">
+      {/* Fixed-width columns: the logo stack and count always start at the
+          same x regardless of how many tools/logos are in this folder, so
+          every row in the list lines up. Both share the identical
+          translate-x used by the buttons, so the whole cluster reads as
+          one synchronized slide on hover -- only the buttons additionally
+          fade in, since the logos/count must stay visible at rest. */}
+      <div className="grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
+        <div className="flex translate-x-3 -space-x-3 transition-transform duration-200 ease-out group-hover:translate-x-0">
           {tools.slice(0, 5).map((t) => {
             const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
             return (
@@ -384,10 +371,10 @@ const SortableFolderItem: React.FC<{
             );
           })}
         </div>
-        <span className="font-sans text-3xl font-black leading-none text-purple-600/40">
+        <span className="translate-x-3 font-sans text-3xl font-black leading-none text-purple-600/40 transition-transform duration-200 ease-out group-hover:translate-x-0">
           {tools.length}
         </span>
-        <div className="flex gap-1">
+        <div className="flex translate-x-3 justify-end gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
           <button
             onClick={() => onAddSubFolder(folder)}
             aria-label={`Add a sub-folder to ${folder.name}`}
@@ -416,8 +403,9 @@ const SortableFolderItem: React.FC<{
   );
 };
 
-/** Same height and content as the parent card (minus "add sub-folder", since
- * nesting is only one level deep) — the difference is purely positional. */
+/** Same content as the parent card (minus "add sub-folder", since nesting
+ * is only one level deep) at a slightly shorter height, so the two are
+ * visually distinguishable while everything still lines up column-for-column. */
 const SubFolderCard: React.FC<{
   folder: Folder;
   tools: Tool[];
@@ -426,7 +414,7 @@ const SubFolderCard: React.FC<{
   onDelete: (folder: Folder) => void;
   onRename: (id: string, name: string) => void;
 }> = ({ folder, tools, isEditing, onBeginEdit, onDelete, onRename }) => (
-  <div className="group flex h-28 w-full items-center justify-between gap-6 rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10">
+  <div className="group flex h-24 w-full items-center justify-between gap-6 overflow-hidden rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10">
     <div className="flex min-w-0 flex-1 items-center gap-2.5">
       <CornerDownRight size={20} className="flex-shrink-0 text-purple-400/70" />
       {isEditing ? (
@@ -437,8 +425,9 @@ const SubFolderCard: React.FC<{
         </h4>
       )}
     </div>
-    <div className="flex flex-shrink-0 items-center gap-5">
-      <div className="flex -space-x-3">
+
+    <div className="grid flex-shrink-0 grid-cols-[170px_44px_auto] items-center">
+      <div className="flex translate-x-3 -space-x-3 transition-transform duration-200 ease-out group-hover:translate-x-0">
         {tools.slice(0, 5).map((t) => {
           const src = resolveLogoSrc(t.logo_url, t.url) ?? monogramDataUri(t.name);
           return (
@@ -459,10 +448,10 @@ const SubFolderCard: React.FC<{
           );
         })}
       </div>
-      <span className="font-sans text-3xl font-black leading-none text-purple-600/40">
+      <span className="translate-x-3 font-sans text-3xl font-black leading-none text-purple-600/40 transition-transform duration-200 ease-out group-hover:translate-x-0">
         {tools.length}
       </span>
-      <div className="flex gap-1">
+      <div className="flex translate-x-3 justify-end gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
         <button
           onClick={() => onBeginEdit(folder.id)}
           aria-label={`Rename ${folder.name}`}
@@ -1279,7 +1268,6 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                           <div className="mx-auto max-w-4xl space-y-3">
                             {topLevelFolders.map((folder) => {
                               const subs = subFoldersByParent.get(folder.id) ?? [];
-                              const connector = buildFolderConnectorPath(subs.length);
                               return (
                                 <div key={folder.id} className="relative">
                                   <SortableFolderItem
@@ -1301,26 +1289,15 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
                                   {subs.length > 0 && (
                                     <div className="relative ml-14 mt-3">
-                                      {/* One single path: a purple trunk with a branch to each
-                                          sub-folder, rendered behind the cards. */}
-                                      <svg
-                                        className="pointer-events-none absolute z-0"
-                                        style={{
-                                          left: CONNECTOR_TRUNK_X,
-                                          top: CONNECTOR_START_Y,
-                                          width: CONNECTOR_BRANCH_END_X - CONNECTOR_TRUNK_X,
-                                          height: connector.height,
-                                        }}
+                                      {/* One element: a single vertical line, centered in the
+                                          gutter between the parent's and sub-folders' left
+                                          edges, spanning exactly from the top of the first
+                                          sub-folder card to the bottom of the last one. */}
+                                      <div
+                                        className="pointer-events-none absolute inset-y-0 z-0 w-1 rounded-full bg-purple-500/40"
+                                        style={{ left: -28 }}
                                         aria-hidden="true"
-                                      >
-                                        <path
-                                          d={connector.d}
-                                          stroke="rgb(168 85 247 / 0.35)"
-                                          strokeWidth={2.5}
-                                          strokeLinecap="round"
-                                          fill="none"
-                                        />
-                                      </svg>
+                                      />
 
                                       <div className="relative z-10 space-y-3">
                                         {subs.map((sub) => (
