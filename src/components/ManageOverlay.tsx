@@ -528,7 +528,7 @@ const ToolFormModal: React.FC<ToolFormModalProps> = ({
             exit={{ scale: 0.95, y: 16, opacity: 0 }}
             role="dialog"
             aria-modal="true"
-            aria-label={isEditing ? 'Edit tool' : 'Add a tool'}
+            aria-label={isEditing ? 'Edit tool' : 'Add an app'}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-lg rounded-[32px] border border-white/10 bg-[#12131a] p-8 shadow-2xl"
           >
@@ -537,7 +537,7 @@ const ToolFormModal: React.FC<ToolFormModalProps> = ({
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600">
                   <Plus size={16} className="text-white" />
                 </span>
-                {isEditing ? 'Edit tool' : 'Add a tool'}
+                {isEditing ? 'Edit tool' : 'Add an app'}
               </h3>
               <button
                 onClick={onClose}
@@ -576,7 +576,7 @@ const ToolFormModal: React.FC<ToolFormModalProps> = ({
               </div>
 
               <div>
-                <label className={labelClass}>Logo link (optional)</label>
+                <label className={labelClass}>Logo (optional)</label>
                 <div className="flex gap-3">
                   <input
                     type="text"
@@ -649,7 +649,7 @@ const ToolFormModal: React.FC<ToolFormModalProps> = ({
                   disabled={busy}
                   className="flex-1 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 py-3.5 font-sans text-[11px] font-black uppercase tracking-widest text-white transition-all hover:shadow-lg hover:shadow-purple-600/30 disabled:opacity-50"
                 >
-                  {isEditing ? 'Save changes' : 'Add tool'}
+                  {isEditing ? 'Save changes' : 'Add app'}
                 </button>
               </div>
             </form>
@@ -740,16 +740,16 @@ const FolderFormModal: React.FC<FolderFormModalProps> = ({
               </div>
 
               <div>
-                <label className={labelClass}>Nest inside</label>
+                <label className={labelClass}>Placement</label>
                 <div className="relative">
                   <select
-                    aria-label="Nest inside"
+                    aria-label="Placement"
                     className={`${fieldClass} cursor-pointer appearance-none pr-10`}
                     value={parentId}
                     onChange={(e) => onParentChange(e.target.value)}
                   >
                     <option value="" className="bg-[#0f172a]">
-                      Main folder
+                      New main folder
                     </option>
                     {topLevelFolders.map((f) => (
                       <option key={f.id} value={f.id} className="bg-[#0f172a]">
