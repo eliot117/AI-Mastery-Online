@@ -76,7 +76,13 @@ function useSmartCollisionDetection(): CollisionDetection {
 }
 
 import type { Folder, NewTool, Tool } from '../types';
-import { getHostname, monogramDataUri, resolveLogoSrc } from '../lib/safeUrl';
+import {
+  getHostname,
+  getIconHorseUrl,
+  monogramDataUri,
+  normalizeUserUrl,
+  resolveLogoSrc,
+} from '../lib/safeUrl';
 
 // ─── App row (Applications tab -- no drag-and-drop) ───────────────────────
 
@@ -988,11 +994,14 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
     }
 
     if (!newName.trim() || !newUrl.trim() || !newToolFolderId) return;
+    // Only ever computed for this one brand-new row -- never touches any
+    // existing tool's logo_url. See the comment on getIconHorseUrl.
+    const autoLogo = newLogo.trim() || getIconHorseUrl(normalizeUserUrl(newUrl));
     await onCreateTool({
       folder_id: newToolFolderId,
       name: newName,
       url: newUrl,
-      logo_url: newLogo.trim() || null,
+      logo_url: autoLogo,
       position: toolsIn(newToolFolderId).length,
     });
     closeToolModal();

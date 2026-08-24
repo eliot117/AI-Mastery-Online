@@ -87,6 +87,22 @@ export function resolveLogoSrc(
   return getFaviconUrl(toolUrl);
 }
 
+/**
+ * Icon-fetching service used only at the moment a brand-new tool is
+ * created with no logo supplied -- the caller writes the result straight
+ * into that one new row's logo_url. Deliberately NOT part of
+ * resolveLogoSrc: a render-time fallback there would apply retroactively
+ * to every existing tool that has no logo_url, silently changing logos
+ * the user never touched (this happened once, 2026-08-25, and was
+ * reverted the same day). Scoping it to tool creation means it can only
+ * ever affect the one row being inserted, never any other app's logo.
+ */
+export function getIconHorseUrl(rawUrl: string | null | undefined): string | null {
+  const hostname = getHostname(rawUrl);
+  if (!hostname) return null;
+  return `https://icon.horse/icon/${encodeURIComponent(hostname)}`;
+}
+
 /** Inline SVG monogram used when every remote image fails to load. */
 export function monogramDataUri(name: string): string {
   const letter = (name.trim().charAt(0) || '?').toUpperCase();
