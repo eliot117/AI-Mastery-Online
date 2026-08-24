@@ -625,7 +625,7 @@ const ToolFormModal: React.FC<ToolFormModalProps> = ({
                   >
                     {folderOptions.map(({ folder, label, isSub }) => (
                       <option key={folder.id} value={folder.id} className="bg-[#0f172a]">
-                        {isSub ? `↳ ${label}` : label}
+                        {isSub ? `↳ ${folder.name}` : label}
                       </option>
                     ))}
                   </select>

@@ -59,31 +59,32 @@ export function normalizeUserUrl(input: string): string | null {
   return parsed.href;
 }
 
-/**
- * Icon fetching service — a fixed allow-listed host, never user-controlled.
- * Given just the site's hostname it returns that brand's actual icon, so a
- * tool added with no logo still gets a real image instead of a generic
- * favicon.
- */
-export function getIconHorseUrl(rawUrl: string | null | undefined): string | null {
+/** Favicon service — a fixed allow-listed host, never user-controlled. */
+export function getFaviconUrl(rawUrl: string | null | undefined): string | null {
   const hostname = getHostname(rawUrl);
   if (!hostname) return null;
-  return `https://icon.horse/icon/${encodeURIComponent(hostname)}`;
+  return `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(hostname)}`;
 }
 
 /**
- * Picks the image to show for a tool: an explicit safe logo URL, else an
- * icon auto-fetched for the tool's own site. Rejects base64/data: payloads
+ * Picks the image to show for a tool: an explicit safe logo URL, else a
+ * favicon derived from the tool's own URL. Rejects base64/data: payloads
  * in the logo_url column, which the database also refuses to store --
  * uploaded logos go through Supabase Storage instead and come back as a
  * real https URL, so they pass through the same safe-URL path.
+ *
+ * icon.horse was tried here as an automatic fallback (2026-08-25) and
+ * reverted the same day: the user reported it made previously-fine logos
+ * look wrong across the board. Re-investigate icon.horse's actual output
+ * (cropping/sizing/wrong-brand-match) before trying it again -- don't
+ * just re-enable it blind.
  */
 export function resolveLogoSrc(
   logoUrl: string | null | undefined,
   toolUrl: string | null | undefined,
 ): string | null {
   if (isSafeHttpUrl(logoUrl)) return logoUrl as string;
-  return getIconHorseUrl(toolUrl);
+  return getFaviconUrl(toolUrl);
 }
 
 /** Inline SVG monogram used when every remote image fails to load. */
