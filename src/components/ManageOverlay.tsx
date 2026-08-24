@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -17,13 +17,16 @@ import {
 } from 'lucide-react';
 import {
   DndContext,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
+  closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
   useDroppable,
   DragOverlay,
   defaultDropAnimation,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
@@ -34,6 +37,43 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+/**
+ * Plain `closestCorners` is unreliable across multiple simultaneous drop
+ * zones (folders here): it measures distance to item-level rects, so
+ * containers with few or no items lose out to whatever item rect happens
+ * to be nearest, even when the pointer is clearly over a different
+ * container. This is dnd-kit's own documented fix for that shape --
+ * layered detection with a sticky fallback, matching the maintainer's
+ * multi-container reference implementation rather than a single algorithm.
+ */
+function useSmartCollisionDetection(): CollisionDetection {
+  const lastOverId = useRef<string | number | null>(null);
+
+  return useCallback((args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      lastOverId.current = pointerCollisions[0].id;
+      return pointerCollisions;
+    }
+
+    const intersections = rectIntersection(args);
+    if (intersections.length > 0) {
+      lastOverId.current = intersections[0].id;
+      return intersections;
+    }
+
+    const centerCollisions = closestCenter(args);
+    if (centerCollisions.length > 0) {
+      lastOverId.current = centerCollisions[0].id;
+      return centerCollisions;
+    }
+
+    // A brief gap in detection during fast pointer movement shouldn't read
+    // as "no target" -- stick with the last real hit instead.
+    return lastOverId.current ? [{ id: lastOverId.current }] : [];
+  }, []);
+}
 
 import type { Folder, NewTool, Tool } from '../types';
 import { getHostname, monogramDataUri, resolveLogoSrc } from '../lib/safeUrl';
@@ -371,7 +411,7 @@ const SortableFolderItem: React.FC<{
             );
           })}
         </div>
-        <span className="translate-x-3 font-sans text-3xl font-black leading-none text-purple-600/40 transition-transform duration-200 ease-out group-hover:translate-x-0">
+        <span className="block translate-x-3 text-right font-sans text-3xl font-black leading-none text-purple-600/40 transition-transform duration-200 ease-out group-hover:translate-x-0">
           {tools.length}
         </span>
         <div className="flex translate-x-3 justify-end gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
@@ -448,7 +488,7 @@ const SubFolderCard: React.FC<{
           );
         })}
       </div>
-      <span className="translate-x-3 font-sans text-3xl font-black leading-none text-purple-600/40 transition-transform duration-200 ease-out group-hover:translate-x-0">
+      <span className="block translate-x-3 text-right font-sans text-3xl font-black leading-none text-purple-600/40 transition-transform duration-200 ease-out group-hover:translate-x-0">
         {tools.length}
       </span>
       <div className="flex translate-x-3 justify-end gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
@@ -831,6 +871,10 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // Separate detectors per DndContext: each keeps its own "last real hit"
+  // fallback, so a fast drag in one tab can't leak stale state into the other.
+  const appsCollisionDetection = useSmartCollisionDetection();
+  const foldersCollisionDetection = useSmartCollisionDetection();
 
   // ── Derived ──────────────────────────────────────────────────────────
 
@@ -843,6 +887,11 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
   );
 
   const subFoldersByParent = useMemo(() => {
+    const toolCountByFolder = new Map<string, number>();
+    for (const t of tools) {
+      toolCountByFolder.set(t.folder_id, (toolCountByFolder.get(t.folder_id) ?? 0) + 1);
+    }
+
     const map = new Map<string, Folder[]>();
     for (const f of folders) {
       if (!f.parent_folder_id) continue;
@@ -850,9 +899,16 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
       if (list) list.push(f);
       else map.set(f.parent_folder_id, [f]);
     }
-    for (const list of map.values()) list.sort((a, b) => a.position - b.position);
+    // Most tools first, always -- not a manually managed order, so this
+    // stays correct automatically as tools are added or removed.
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        const diff = (toolCountByFolder.get(b.id) ?? 0) - (toolCountByFolder.get(a.id) ?? 0);
+        return diff !== 0 ? diff : a.position - b.position;
+      });
+    }
     return map;
-  }, [folders]);
+  }, [folders, tools]);
 
   const toolsByFolder = useMemo(() => {
     const map = new Map<string, Tool[]>();
@@ -1205,7 +1261,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                     <div className="space-y-10">
                       <DndContext
                         sensors={sensors}
-                        collisionDetection={closestCorners}
+                        collisionDetection={appsCollisionDetection}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                       >
@@ -1257,7 +1313,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
 
                       <DndContext
                         sensors={sensors}
-                        collisionDetection={closestCorners}
+                        collisionDetection={foldersCollisionDetection}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                       >
@@ -1294,7 +1350,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                           edges, spanning exactly from the top of the first
                                           sub-folder card to the bottom of the last one. */}
                                       <div
-                                        className="pointer-events-none absolute inset-y-0 z-0 w-1 rounded-full bg-purple-500/40"
+                                        className="pointer-events-none absolute top-0 bottom-8 z-0 w-1 rounded-full bg-purple-500/40"
                                         style={{ left: -28 }}
                                         aria-hidden="true"
                                       />
