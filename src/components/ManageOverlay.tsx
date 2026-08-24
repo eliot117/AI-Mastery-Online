@@ -347,7 +347,18 @@ const SortableFolderItem: React.FC<{
   onDelete: (folder: Folder) => void;
   onRename: (id: string, name: string) => void;
   onAddSubFolder: (parent: Folder) => void;
-}> = ({ folder, tools, isDragging, isEditing, onBeginEdit, onDelete, onRename, onAddSubFolder }) => {
+  onRequestReset: (folder: Folder) => void;
+}> = ({
+  folder,
+  tools,
+  isDragging,
+  isEditing,
+  onBeginEdit,
+  onDelete,
+  onRename,
+  onAddSubFolder,
+  onRequestReset,
+}) => {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id: folder.id });
 
@@ -423,6 +434,16 @@ const SortableFolderItem: React.FC<{
           >
             <FolderPlus size={16} />
           </button>
+          {folder.origin_folder_id && (
+            <button
+              onClick={() => onRequestReset(folder)}
+              aria-label={`Reset ${folder.name} to the default template`}
+              title="Reset to default"
+              className="rounded-full p-2 text-purple-400 transition-all hover:bg-purple-400/10"
+            >
+              <RotateCcw size={17} />
+            </button>
+          )}
           <button
             onClick={() => onBeginEdit(folder.id)}
             aria-label={`Rename ${folder.name}`}
@@ -453,7 +474,8 @@ const SubFolderCard: React.FC<{
   onBeginEdit: (id: string) => void;
   onDelete: (folder: Folder) => void;
   onRename: (id: string, name: string) => void;
-}> = ({ folder, tools, isEditing, onBeginEdit, onDelete, onRename }) => (
+  onRequestReset: (folder: Folder) => void;
+}> = ({ folder, tools, isEditing, onBeginEdit, onDelete, onRename, onRequestReset }) => (
   <div className="group flex h-24 w-full items-center justify-between gap-6 overflow-hidden rounded-[32px] border border-white/5 bg-white/5 px-8 transition-all hover:border-white/10">
     <div className="flex min-w-0 flex-1 items-center gap-2.5">
       <CornerDownRight size={20} className="flex-shrink-0 text-purple-400/70" />
@@ -492,6 +514,16 @@ const SubFolderCard: React.FC<{
         {tools.length}
       </span>
       <div className="flex translate-x-3 justify-end gap-1 opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">
+        {folder.origin_folder_id && (
+          <button
+            onClick={() => onRequestReset(folder)}
+            aria-label={`Reset ${folder.name} to the default template`}
+            title="Reset to default"
+            className="rounded-full p-2 text-purple-400 transition-all hover:bg-purple-400/10"
+          >
+            <RotateCcw size={17} />
+          </button>
+        )}
         <button
           onClick={() => onBeginEdit(folder.id)}
           aria-label={`Rename ${folder.name}`}
@@ -1341,6 +1373,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                       }
                                     }}
                                     onAddSubFolder={openNewSubFolder}
+                                    onRequestReset={setConfirmReset}
                                   />
 
                                   {subs.length > 0 && (
@@ -1371,6 +1404,7 @@ export const ManageOverlay: React.FC<ManageOverlayProps> = ({
                                                 void onRenameFolder(id, name);
                                               }
                                             }}
+                                            onRequestReset={setConfirmReset}
                                           />
                                         ))}
                                       </div>
