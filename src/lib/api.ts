@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { Folder, NewFolder, NewTool, Tool } from '../types';
 import { normalizeUserUrl } from './safeUrl';
+import { ADDED_APPS } from './addedApps';
 
 /**
  * Row-Level Security is the access-control boundary: the database only ever
@@ -19,6 +20,116 @@ import { normalizeUserUrl } from './safeUrl';
 export interface Library {
   folders: Folder[];
   tools: Tool[];
+}
+
+const SYNCED_ADDED_APPS_PREFIX = 'ai_mastery_added_apps_v1:';
+
+function readSyncedRevisions(ownerId: string): Record<string, number> {
+  try {
+    const raw = window.localStorage.getItem(`${SYNCED_ADDED_APPS_PREFIX}${ownerId}`);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSyncedRevisions(ownerId: string, map: Record<string, number>): void {
+  try {
+    window.localStorage.setItem(`${SYNCED_ADDED_APPS_PREFIX}${ownerId}`, JSON.stringify(map));
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+async function syncAddedApps(
+  ownerId: string,
+  folders: Folder[],
+  tools: Tool[],
+): Promise<Tool[]> {
+  if (!ADDED_APPS.length) return tools;
+
+  const synced = readSyncedRevisions(ownerId);
+  let nextTools = tools;
+  let syncedChanged = false;
+
+  for (const entry of ADDED_APPS) {
+    const syncedRev = synced[entry.id] ?? 0;
+    if (syncedRev >= entry.revision) continue;
+
+    const targetFolder = folders.find(
+      (f) => f.name.trim().toLowerCase() === entry.folder.trim().toLowerCase(),
+    );
+    if (!targetFolder) continue;
+
+    const normalizedUrl = normalizeUserUrl(entry.url);
+    if (!normalizedUrl) continue;
+    const normalizedLogo = normalizeUserUrl(entry.logoUrl);
+
+    const existing = nextTools.find(
+      (t) =>
+        t.folder_id === targetFolder.id &&
+        (t.url === normalizedUrl ||
+          t.name.trim().toLowerCase() === entry.name.trim().toLowerCase()),
+    );
+
+    if (existing) {
+      if (syncedRev > 0 && syncedRev < entry.revision) {
+        try {
+          const { data, error } = await supabase
+            .from('tools')
+            .update({
+              name: entry.name.trim(),
+              url: normalizedUrl,
+              logo_url: normalizedLogo,
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          if (!error && data) {
+            nextTools = nextTools.map((t) => (t.id === existing.id ? (data as Tool) : t));
+          }
+        } catch {
+          /* keep existing state on transient error */
+        }
+      }
+      synced[entry.id] = entry.revision;
+      syncedChanged = true;
+      continue;
+    }
+
+    const nextPosition =
+      nextTools
+        .filter((t) => t.folder_id === targetFolder.id)
+        .reduce((max, t) => Math.max(max, t.position), -1) + 1;
+
+    try {
+      const { data, error } = await supabase
+        .from('tools')
+        .insert({
+          owner_id: ownerId,
+          folder_id: targetFolder.id,
+          name: entry.name.trim(),
+          url: normalizedUrl,
+          description: null,
+          icon: entry.name.trim().charAt(0).toUpperCase(),
+          logo_url: normalizedLogo,
+          position: nextPosition,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        nextTools = [...nextTools, data as Tool];
+        synced[entry.id] = entry.revision;
+        syncedChanged = true;
+      }
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  if (syncedChanged) writeSyncedRevisions(ownerId, synced);
+  return nextTools;
 }
 
 /**
@@ -48,10 +159,10 @@ export async function fetchLibrary(): Promise<Library> {
   if (foldersRes.error) throw foldersRes.error;
   if (toolsRes.error) throw toolsRes.error;
 
-  return {
-    folders: (foldersRes.data ?? []) as Folder[],
-    tools: (toolsRes.data ?? []) as Tool[],
-  };
+  const folders = (foldersRes.data ?? []) as Folder[];
+  const tools = await syncAddedApps(ownerId, folders, (toolsRes.data ?? []) as Tool[]);
+
+  return { folders, tools };
 }
 
 /**
